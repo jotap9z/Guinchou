@@ -4,10 +4,12 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.guinchou.app.model.TowRequestStatus
 import com.guinchou.app.ui.screens.auth.LoginScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
+import com.guinchou.app.ui.screens.request.CompletedScreen
 import com.guinchou.app.ui.screens.request.DestinationScreen
 import com.guinchou.app.ui.screens.request.EstimateScreen
 import com.guinchou.app.ui.screens.request.PickupScreen
@@ -18,14 +20,6 @@ import com.guinchou.app.ui.screens.request.VehicleScreen
 import com.guinchou.app.ui.screens.splash.SplashScreen
 import com.guinchou.app.viewmodel.TowRequestViewModel
 
-/**
- * Grafo principal de navegação do Guinchou.
- *
- * Contém atualmente:
- *
- * - fluxo do cliente;
- * - entrada do fluxo parceiro.
- */
 @Composable
 fun GuinchouNavGraph(
 
@@ -37,27 +31,24 @@ fun GuinchouNavGraph(
 ) {
 
     NavHost(
-
         navController =
             navController,
-
         startDestination =
             Routes.SPLASH
     ) {
-
 
         /*
          * =========================================
          * SPLASH
          * =========================================
          */
+
         composable(
             route =
                 Routes.SPLASH
         ) {
 
             SplashScreen(
-
                 onFinished = {
 
                     navController.navigate(
@@ -67,8 +58,8 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.SPLASH
                         ) {
-
-                            inclusive = true
+                            inclusive =
+                                true
                         }
                     }
                 }
@@ -81,6 +72,7 @@ fun GuinchouNavGraph(
          * LOGIN
          * =========================================
          */
+
         composable(
             route =
                 Routes.LOGIN
@@ -88,9 +80,6 @@ fun GuinchouNavGraph(
 
             LoginScreen(
 
-                /*
-                 * Login do cliente.
-                 */
                 onLoginClick = {
                         _, _ ->
 
@@ -99,12 +88,6 @@ fun GuinchouNavGraph(
                     )
                 },
 
-
-                /*
-                 * Google.
-                 *
-                 * Ainda simulado.
-                 */
                 onGoogleClick = {
 
                     openHome(
@@ -112,29 +95,14 @@ fun GuinchouNavGraph(
                     )
                 },
 
-
-                /*
-                 * Cadastro de cliente
-                 * será criado posteriormente.
-                 */
                 onCreateAccountClick = {
 
                 },
 
-
-                /*
-                 * Recuperação de senha.
-                 */
                 onForgotPasswordClick = {
 
                 },
 
-
-                /*
-                 * =====================================
-                 * ENTRADA DO PARCEIRO
-                 * =====================================
-                 */
                 onPartnerClick = {
 
                     navController.navigate(
@@ -147,9 +115,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * ESCOLHA DO TIPO DE PARCEIRO
+         * PARCEIRO
          * =========================================
          */
+
         composable(
             route =
                 Routes.PARTNER
@@ -157,38 +126,14 @@ fun GuinchouNavGraph(
 
             PartnerTypeScreen(
 
-                /*
-                 * Motorista independente.
-                 */
                 onIndependentDriverClick = {
 
-                    /*
-                     * Na próxima etapa:
-                     *
-                     * Routes.DRIVER_REGISTER
-                     *
-                     * Ainda não navegamos porque
-                     * a tela será criada em seguida.
-                     */
                 },
 
-
-                /*
-                 * Empresa.
-                 */
                 onCompanyClick = {
 
-                    /*
-                     * Na próxima etapa empresarial:
-                     *
-                     * Routes.COMPANY_REGISTER
-                     */
                 },
 
-
-                /*
-                 * Volta para Login.
-                 */
                 onBackClick = {
 
                     navController
@@ -200,9 +145,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * HOME DO CLIENTE
+         * HOME
          * =========================================
          */
+
         composable(
             route =
                 Routes.HOME
@@ -233,9 +179,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * 1 DE 5 - PARTIDA
+         * PICKUP
          * =========================================
          */
+
         composable(
             route =
                 Routes.PICKUP
@@ -244,12 +191,37 @@ fun GuinchouNavGraph(
             PickupScreen(
 
                 onContinueClick = {
-                        pickupAddress ->
+                        address,
+                        latitude,
+                        longitude,
+                        source ->
 
-                    towRequestViewModel
-                        .updatePickupAddress(
-                            pickupAddress
-                        )
+                    if (
+                        source ==
+                        "GPS" &&
+                        latitude !=
+                        null &&
+                        longitude !=
+                        null
+                    ) {
+
+                        towRequestViewModel
+                            .updatePickupFromGps(
+                                address =
+                                    address,
+                                latitude =
+                                    latitude,
+                                longitude =
+                                    longitude
+                            )
+
+                    } else {
+
+                        towRequestViewModel
+                            .updatePickupAddress(
+                                address
+                            )
+                    }
 
                     navController.navigate(
                         Routes.DESTINATION
@@ -267,9 +239,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * 2 DE 5 - DESTINO
+         * DESTINO
          * =========================================
          */
+
         composable(
             route =
                 Routes.DESTINATION
@@ -301,9 +274,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * 3 DE 5 - VEÍCULO
+         * VEÍCULO
          * =========================================
          */
+
         composable(
             route =
                 Routes.VEHICLE
@@ -320,19 +294,14 @@ fun GuinchouNavGraph(
 
                     towRequestViewModel
                         .updateVehicle(
-
                             type =
                                 vehicleType,
-
                             brand =
                                 brand,
-
                             model =
                                 model,
-
                             year =
                                 year,
-
                             plate =
                                 plate
                         )
@@ -353,9 +322,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * 4 DE 5 - PROBLEMA
+         * PROBLEMA
          * =========================================
          */
+
         composable(
             route =
                 Routes.PROBLEM
@@ -375,6 +345,52 @@ fun GuinchouNavGraph(
                     towRequestViewModel
                         .problemDescription,
 
+                initialPhotoOneUri =
+                    towRequestViewModel
+                        .vehiclePhotoOneUri,
+
+                initialPhotoTwoUri =
+                    towRequestViewModel
+                        .vehiclePhotoTwoUri,
+
+                onPhotoOneChanged = {
+                        uri ->
+
+                    if (
+                        uri != null
+                    ) {
+
+                        towRequestViewModel
+                            .updateVehiclePhotoOne(
+                                uri
+                            )
+
+                    } else {
+
+                        towRequestViewModel
+                            .removeVehiclePhotoOne()
+                    }
+                },
+
+                onPhotoTwoChanged = {
+                        uri ->
+
+                    if (
+                        uri != null
+                    ) {
+
+                        towRequestViewModel
+                            .updateVehiclePhotoTwo(
+                                uri
+                            )
+
+                    } else {
+
+                        towRequestViewModel
+                            .removeVehiclePhotoTwo()
+                    }
+                },
+
                 onContinueClick = {
                         problemType,
                         problemDetail,
@@ -382,19 +398,26 @@ fun GuinchouNavGraph(
 
                     towRequestViewModel
                         .updateProblem(
-
                             type =
                                 problemType,
-
                             detail =
                                 problemDetail,
-
                             description =
                                 description
                         )
 
+                    if (
+                        problemType ==
+                        "ACCIDENT" &&
+                        !towRequestViewModel
+                            .hasRequiredAccidentPhotos()
+                    ) {
+
+                        return@ProblemScreen
+                    }
+
                     /*
-                     * Distância temporária.
+                     * Temporário.
                      */
                     towRequestViewModel
                         .calculateEstimate(
@@ -417,9 +440,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * 5 DE 5 - ESTIMATIVA
+         * ESTIMATIVA
          * =========================================
          */
+
         composable(
             route =
                 Routes.ESTIMATE
@@ -480,6 +504,7 @@ fun GuinchouNavGraph(
          * PAGAMENTO
          * =========================================
          */
+
         composable(
             route =
                 Routes.PAYMENT
@@ -493,6 +518,9 @@ fun GuinchouNavGraph(
 
                 onConfirmPaymentClick = {
                         _ ->
+
+                    towRequestViewModel
+                        .startSearching()
 
                     navController.navigate(
                         Routes.SEARCHING
@@ -510,9 +538,10 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * PROCURANDO GUINCHO
+         * BUSCA
          * =========================================
          */
+
         composable(
             route =
                 Routes.SEARCHING
@@ -546,6 +575,20 @@ fun GuinchouNavGraph(
 
                 onTowFound = {
 
+                    towRequestViewModel
+                        .acceptTowRequest(
+                            driverName =
+                                "Carlos Henrique",
+                            towTruckDescription =
+                                "Mercedes-Benz Accelo Plataforma",
+                            towTruckPlate =
+                                "ABC1D23",
+                            driverRating =
+                                4.9,
+                            arrivalMinutes =
+                                12
+                        )
+
                     navController.navigate(
                         Routes.TRACKING
                     ) {
@@ -553,13 +596,16 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.SEARCHING
                         ) {
-
-                            inclusive = true
+                            inclusive =
+                                true
                         }
                     }
                 },
 
                 onCancelClick = {
+
+                    towRequestViewModel
+                        .cancelRequest()
 
                     towRequestViewModel
                         .clearRequest()
@@ -571,8 +617,8 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.HOME
                         ) {
-
-                            inclusive = false
+                            inclusive =
+                                false
                         }
                     }
                 }
@@ -585,6 +631,7 @@ fun GuinchouNavGraph(
          * ACOMPANHAMENTO
          * =========================================
          */
+
         composable(
             route =
                 Routes.TRACKING
@@ -596,21 +643,33 @@ fun GuinchouNavGraph(
                     towRequestViewModel
                         .pickupAddress,
 
-                /*
-                 * Temporários até existir
-                 * o backend do parceiro.
-                 */
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
                 driverName =
-                    "Carlos Henrique",
+                    towRequestViewModel
+                        .acceptedDriverName,
 
                 towTruckDescription =
-                    "Mercedes-Benz Accelo Plataforma",
+                    towRequestViewModel
+                        .acceptedTowTruckDescription,
 
                 towTruckPlate =
-                    "ABC1D23",
+                    towRequestViewModel
+                        .acceptedTowTruckPlate,
 
                 estimatedArrivalMinutes =
-                    12,
+                    towRequestViewModel
+                        .estimatedArrivalMinutes,
+
+                driverRating =
+                    towRequestViewModel
+                        .acceptedDriverRating,
+
+                requestStatus =
+                    towRequestViewModel
+                        .requestStatus,
 
                 onCallClick = {
 
@@ -620,7 +679,77 @@ fun GuinchouNavGraph(
 
                 },
 
+
+                /*
+                 * =================================
+                 * SIMULAÇÃO DOS ESTADOS
+                 * =================================
+                 *
+                 * Isso será removido quando
+                 * conectarmos o app do parceiro.
+                 */
+                onAdvanceTestClick = {
+
+                    when (
+                        towRequestViewModel
+                            .requestStatus
+                    ) {
+
+                        TowRequestStatus
+                            .DRIVER_ON_THE_WAY -> {
+
+                            towRequestViewModel
+                                .markDriverArrived()
+                        }
+
+
+                        TowRequestStatus
+                            .ARRIVED -> {
+
+                            towRequestViewModel
+                                .markVehicleLoaded()
+                        }
+
+
+                        TowRequestStatus
+                            .VEHICLE_LOADED -> {
+
+                            towRequestViewModel
+                                .startTransport()
+                        }
+
+
+                        TowRequestStatus
+                            .IN_TRANSIT -> {
+
+                            towRequestViewModel
+                                .completeRequest()
+
+                            navController.navigate(
+                                Routes.COMPLETED
+                            ) {
+
+                                popUpTo(
+                                    Routes.TRACKING
+                                ) {
+                                    inclusive =
+                                        true
+                                }
+                            }
+                        }
+
+
+                        else -> {
+
+                        }
+                    }
+                },
+
+
                 onCancelClick = {
+
+                    towRequestViewModel
+                        .cancelRequest()
 
                     towRequestViewModel
                         .clearRequest()
@@ -632,8 +761,67 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.HOME
                         ) {
+                            inclusive =
+                                false
+                        }
+                    }
+                }
+            )
+        }
 
-                            inclusive = false
+
+        /*
+         * =========================================
+         * SERVIÇO CONCLUÍDO
+         * =========================================
+         */
+
+        composable(
+            route =
+                Routes.COMPLETED
+        ) {
+
+            CompletedScreen(
+
+                driverName =
+                    towRequestViewModel
+                        .acceptedDriverName,
+
+                pickupAddress =
+                    towRequestViewModel
+                        .pickupAddress,
+
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
+                servicePrice =
+                    towRequestViewModel
+                        .servicePrice,
+
+                onFinishClick = {
+                        rating ->
+
+                    /*
+                     * Rating será enviado para
+                     * o backend posteriormente.
+                     *
+                     * Por enquanto apenas
+                     * encerramos o fluxo.
+                     */
+
+                    towRequestViewModel
+                        .clearRequest()
+
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+
+                        popUpTo(
+                            Routes.HOME
+                        ) {
+                            inclusive =
+                                false
                         }
                     }
                 }
@@ -643,10 +831,6 @@ fun GuinchouNavGraph(
 }
 
 
-/**
- * Abre a Home do cliente
- * após autenticação.
- */
 private fun openHome(
     navController:
     NavHostController
@@ -659,8 +843,8 @@ private fun openHome(
         popUpTo(
             Routes.LOGIN
         ) {
-
-            inclusive = true
+            inclusive =
+                true
         }
     }
 }

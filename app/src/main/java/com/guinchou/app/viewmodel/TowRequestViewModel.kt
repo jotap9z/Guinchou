@@ -5,20 +5,42 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.guinchou.app.domain.PricingCalculator
+import com.guinchou.app.model.TowRequestStatus
 
 /**
- * Guarda todo o estado temporário
- * de uma solicitação de guincho.
+ * Estado central de uma solicitação
+ * de guincho.
  */
 class TowRequestViewModel : ViewModel() {
 
     /*
      * =========================================
-     * PARTIDA
+     * STATUS DO CHAMADO
+     * =========================================
+     */
+
+    var requestStatus by mutableStateOf(
+        TowRequestStatus.CREATED
+    )
+        private set
+
+
+    /*
+     * =========================================
+     * LOCALIZAÇÃO
      * =========================================
      */
 
     var pickupAddress by mutableStateOf("")
+        private set
+
+    var pickupLatitude by mutableStateOf<Double?>(null)
+        private set
+
+    var pickupLongitude by mutableStateOf<Double?>(null)
+        private set
+
+    var pickupLocationSource by mutableStateOf("")
         private set
 
 
@@ -29,6 +51,12 @@ class TowRequestViewModel : ViewModel() {
      */
 
     var destinationAddress by mutableStateOf("")
+        private set
+
+    var destinationLatitude by mutableStateOf<Double?>(null)
+        private set
+
+    var destinationLongitude by mutableStateOf<Double?>(null)
         private set
 
 
@@ -72,51 +100,34 @@ class TowRequestViewModel : ViewModel() {
 
     /*
      * =========================================
-     * DISTÂNCIA
+     * FOTOS
+     * =========================================
+     */
+
+    var vehiclePhotoOneUri by mutableStateOf<String?>(null)
+        private set
+
+    var vehiclePhotoTwoUri by mutableStateOf<String?>(null)
+        private set
+
+
+    /*
+     * =========================================
+     * FINANCEIRO
      * =========================================
      */
 
     var distanceKm by mutableStateOf(0.0)
         private set
 
-
-    /*
-     * =========================================
-     * PREÇO DO SERVIÇO
-     * =========================================
-     */
-
     var servicePrice by mutableStateOf(0.0)
         private set
-
-
-    /*
-     * =========================================
-     * TAXA DA PLATAFORMA
-     * =========================================
-     */
 
     var platformFee by mutableStateOf(0.0)
         private set
 
-
-    /*
-     * Porcentagem aplicada.
-     *
-     * Exemplo:
-     *
-     * 0.10 = 10%
-     * 0.06 = 6%
-     */
     var platformFeePercentage by mutableStateOf(0.0)
         private set
-
-
-    /*
-     * =========================================
-     * VALOR DO PARCEIRO
-     * =========================================
-     */
 
     var partnerAmount by mutableStateOf(0.0)
         private set
@@ -124,7 +135,47 @@ class TowRequestViewModel : ViewModel() {
 
     /*
      * =========================================
-     * PARTIDA
+     * DADOS DO PARCEIRO QUE ACEITOU
+     * =========================================
+     *
+     * Ainda simulados.
+     *
+     * Depois virão do backend.
+     */
+
+    var acceptedDriverName by mutableStateOf("")
+        private set
+
+    var acceptedTowTruckDescription by mutableStateOf("")
+        private set
+
+    var acceptedTowTruckPlate by mutableStateOf("")
+        private set
+
+    var acceptedDriverRating by mutableStateOf(0.0)
+        private set
+
+    var estimatedArrivalMinutes by mutableStateOf(0)
+        private set
+
+
+    /*
+     * =========================================
+     * STATUS
+     * =========================================
+     */
+
+    fun updateRequestStatus(
+        status: TowRequestStatus
+    ) {
+
+        requestStatus = status
+    }
+
+
+    /*
+     * =========================================
+     * LOCALIZAÇÃO MANUAL
      * =========================================
      */
 
@@ -132,8 +183,35 @@ class TowRequestViewModel : ViewModel() {
         address: String
     ) {
 
-        pickupAddress =
-            address
+        pickupAddress = address
+
+        pickupLatitude = null
+
+        pickupLongitude = null
+
+        pickupLocationSource = "MANUAL"
+    }
+
+
+    /*
+     * =========================================
+     * LOCALIZAÇÃO GPS
+     * =========================================
+     */
+
+    fun updatePickupFromGps(
+        address: String,
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        pickupAddress = address
+
+        pickupLatitude = latitude
+
+        pickupLongitude = longitude
+
+        pickupLocationSource = "GPS"
     }
 
 
@@ -147,8 +225,25 @@ class TowRequestViewModel : ViewModel() {
         address: String
     ) {
 
-        destinationAddress =
-            address
+        destinationAddress = address
+
+        destinationLatitude = null
+
+        destinationLongitude = null
+    }
+
+
+    fun updateDestinationLocation(
+        address: String,
+        latitude: Double,
+        longitude: Double
+    ) {
+
+        destinationAddress = address
+
+        destinationLatitude = latitude
+
+        destinationLongitude = longitude
     }
 
 
@@ -166,20 +261,15 @@ class TowRequestViewModel : ViewModel() {
         plate: String
     ) {
 
-        vehicleType =
-            type
+        vehicleType = type
 
-        vehicleBrand =
-            brand
+        vehicleBrand = brand
 
-        vehicleModel =
-            model
+        vehicleModel = model
 
-        vehicleYear =
-            year
+        vehicleYear = year
 
-        vehiclePlate =
-            plate
+        vehiclePlate = plate
     }
 
 
@@ -195,75 +285,102 @@ class TowRequestViewModel : ViewModel() {
         description: String
     ) {
 
-        problemType =
-            type
+        problemType = type
 
-        problemDetail =
-            detail
+        problemDetail = detail
 
-        problemDescription =
-            description
+        problemDescription = description
+
+        if (
+            type != "ACCIDENT"
+        ) {
+
+            clearVehiclePhotos()
+        }
     }
 
 
     /*
      * =========================================
-     * DISTÂNCIA + CÁLCULO FINANCEIRO
+     * FOTOS
      * =========================================
-     *
-     * Quando recebemos a distância,
-     * calculamos automaticamente:
-     *
-     * - preço;
-     * - porcentagem;
-     * - taxa da plataforma;
-     * - valor do parceiro.
      */
+
+    fun updateVehiclePhotoOne(
+        uri: String
+    ) {
+
+        vehiclePhotoOneUri = uri
+    }
+
+
+    fun updateVehiclePhotoTwo(
+        uri: String
+    ) {
+
+        vehiclePhotoTwoUri = uri
+    }
+
+
+    fun removeVehiclePhotoOne() {
+
+        vehiclePhotoOneUri = null
+    }
+
+
+    fun removeVehiclePhotoTwo() {
+
+        vehiclePhotoTwoUri = null
+    }
+
+
+    fun clearVehiclePhotos() {
+
+        vehiclePhotoOneUri = null
+
+        vehiclePhotoTwoUri = null
+    }
+
+
+    fun hasRequiredAccidentPhotos(): Boolean {
+
+        return (
+                vehiclePhotoOneUri != null &&
+                        vehiclePhotoTwoUri != null
+                )
+    }
+
+
+    /*
+     * =========================================
+     * ESTIMATIVA
+     * =========================================
+     */
+
     fun calculateEstimate(
         distance: Double
     ) {
 
-        /*
-         * Guarda distância.
-         */
-        distanceKm =
-            distance
+        distanceKm = distance
 
-
-        /*
-         * Calcula preço.
-         */
         servicePrice =
             PricingCalculator
                 .calculateServicePrice(
                     distance
                 )
 
-
-        /*
-         * Descobre se usamos
-         * 10% ou 6%.
-         */
         platformFeePercentage =
             PricingCalculator
                 .calculatePlatformFeePercentage(
                     servicePrice
                 )
 
-
-        /*
-         * Valor da plataforma.
-         */
         platformFee =
             PricingCalculator
                 .calculatePlatformFee(
                     servicePrice
                 )
 
-
-        /*
-         * Valor do parceiro.
-         */
         partnerAmount =
             PricingCalculator
                 .calculatePartnerAmount(
@@ -274,15 +391,153 @@ class TowRequestViewModel : ViewModel() {
 
     /*
      * =========================================
-     * LIMPAR PEDIDO
+     * INICIAR BUSCA
+     * =========================================
+     */
+
+    fun startSearching() {
+
+        requestStatus =
+            TowRequestStatus.SEARCHING
+    }
+
+
+    /*
+     * =========================================
+     * PARCEIRO ACEITOU
+     * =========================================
+     */
+
+    fun acceptTowRequest(
+        driverName: String,
+        towTruckDescription: String,
+        towTruckPlate: String,
+        driverRating: Double,
+        arrivalMinutes: Int
+    ) {
+
+        acceptedDriverName =
+            driverName
+
+        acceptedTowTruckDescription =
+            towTruckDescription
+
+        acceptedTowTruckPlate =
+            towTruckPlate
+
+        acceptedDriverRating =
+            driverRating
+
+        estimatedArrivalMinutes =
+            arrivalMinutes
+
+        /*
+         * Primeiro marcamos como aceito.
+         */
+        requestStatus =
+            TowRequestStatus.ACCEPTED
+
+        /*
+         * Em seguida o guincheiro
+         * passa a estar a caminho.
+         */
+        requestStatus =
+            TowRequestStatus.DRIVER_ON_THE_WAY
+    }
+
+
+    /*
+     * =========================================
+     * GUINCHEIRO CHEGOU
+     * =========================================
+     */
+
+    fun markDriverArrived() {
+
+        requestStatus =
+            TowRequestStatus.ARRIVED
+    }
+
+
+    /*
+     * =========================================
+     * VEÍCULO CARREGADO
+     * =========================================
+     */
+
+    fun markVehicleLoaded() {
+
+        requestStatus =
+            TowRequestStatus.VEHICLE_LOADED
+    }
+
+
+    /*
+     * =========================================
+     * TRANSPORTE INICIADO
+     * =========================================
+     */
+
+    fun startTransport() {
+
+        requestStatus =
+            TowRequestStatus.IN_TRANSIT
+    }
+
+
+    /*
+     * =========================================
+     * FINALIZAR
+     * =========================================
+     */
+
+    fun completeRequest() {
+
+        requestStatus =
+            TowRequestStatus.COMPLETED
+    }
+
+
+    /*
+     * =========================================
+     * CANCELAR
+     * =========================================
+     */
+
+    fun cancelRequest() {
+
+        requestStatus =
+            TowRequestStatus.CANCELLED
+    }
+
+
+    /*
+     * =========================================
+     * LIMPAR SOLICITAÇÃO
      * =========================================
      */
 
     fun clearRequest() {
 
+        requestStatus =
+            TowRequestStatus.CREATED
+
+
         pickupAddress = ""
 
+        pickupLatitude = null
+
+        pickupLongitude = null
+
+        pickupLocationSource = ""
+
+
         destinationAddress = ""
+
+        destinationLatitude = null
+
+        destinationLongitude = null
+
 
         vehicleType = ""
 
@@ -294,11 +549,18 @@ class TowRequestViewModel : ViewModel() {
 
         vehiclePlate = ""
 
+
         problemType = ""
 
         problemDetail = ""
 
         problemDescription = ""
+
+
+        vehiclePhotoOneUri = null
+
+        vehiclePhotoTwoUri = null
+
 
         distanceKm = 0.0
 
@@ -309,5 +571,16 @@ class TowRequestViewModel : ViewModel() {
         platformFeePercentage = 0.0
 
         partnerAmount = 0.0
+
+
+        acceptedDriverName = ""
+
+        acceptedTowTruckDescription = ""
+
+        acceptedTowTruckPlate = ""
+
+        acceptedDriverRating = 0.0
+
+        estimatedArrivalMinutes = 0
     }
 }

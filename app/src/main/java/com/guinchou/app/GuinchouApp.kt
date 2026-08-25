@@ -1,39 +1,21 @@
 package com.guinchou.app
 
-import androidx.compose.runtime.Composable
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.rememberNavController
-import com.guinchou.app.navigation.GuinchouNavGraph
-import com.guinchou.app.viewmodel.TowRequestViewModel
+import android.app.Application
+import com.guinchou.app.data.remote.SupabaseProvider
 
 /**
- * Componente raiz do aplicativo.
+ * Application principal do Guinchou.
  */
-@Composable
-fun GuinchouApp() {
+class GuinchouApp : Application() {
 
-    /*
-     * Controlador das rotas.
-     */
-    val navController =
-        rememberNavController()
+    override fun onCreate() {
 
-    /*
-     * Cria uma única instância do ViewModel
-     * para o fluxo da solicitação.
-     */
-    val towRequestViewModel:
-            TowRequestViewModel =
-        viewModel()
+        super.onCreate()
 
-    /*
-     * Passamos o ViewModel para
-     * o grafo de navegação.
-     */
-    GuinchouNavGraph(
-        navController =
-            navController,
-        towRequestViewModel =
-            towRequestViewModel
-    )
+        /*
+         * Inicializa o cliente Supabase
+         * quando o aplicativo é aberto.
+         */
+        SupabaseProvider.client
+    }
 }

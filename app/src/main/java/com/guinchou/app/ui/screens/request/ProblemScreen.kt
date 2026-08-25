@@ -1,10 +1,17 @@
 package com.guinchou.app.ui.screens.request
 
+import android.content.Context
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,10 +20,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -30,203 +38,194 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
 import com.guinchou.app.ui.theme.GuinchouBackground
 import com.guinchou.app.ui.theme.GuinchouBorder
 import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import java.io.File
 
-/**
- * Etapa 4 de 5.
- *
- * O cliente informa se o problema
- * é mecânico ou decorrente de acidente.
- *
- * Mantém o comportamento padrão:
- *
- * tocar fora do campo:
- *
- * - fecha teclado;
- * - remove foco;
- * - mantém tudo preenchido.
- */
 @Composable
 fun ProblemScreen(
-
-    initialProblemType: String = "",
-
-    initialProblemDetail: String = "",
-
-    initialDescription: String = "",
-
+    initialProblemType: String,
+    initialProblemDetail: String,
+    initialDescription: String,
+    initialPhotoOneUri: String?,
+    initialPhotoTwoUri: String?,
+    onPhotoOneChanged: (String?) -> Unit,
+    onPhotoTwoChanged: (String?) -> Unit,
     onContinueClick: (
         problemType: String,
         problemDetail: String,
         description: String
     ) -> Unit,
-
     onBackClick: () -> Unit
 ) {
 
-    /*
-     * Categoria principal.
-     */
-    var selectedProblemType by remember(
-        initialProblemType
-    ) {
+    val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-        mutableStateOf(
-            initialProblemType
-        )
+    var problemType by remember {
+        mutableStateOf(initialProblemType)
     }
 
-    /*
-     * Problema específico.
-     */
-    var selectedProblemDetail by remember(
-        initialProblemDetail
-    ) {
-
-        mutableStateOf(
-            initialProblemDetail
-        )
+    var problemDetail by remember {
+        mutableStateOf(initialProblemDetail)
     }
 
-    /*
-     * Observação adicional.
-     */
-    var description by remember(
-        initialDescription
-    ) {
-
-        mutableStateOf(
-            initialDescription
-        )
+    var description by remember {
+        mutableStateOf(initialDescription)
     }
 
-    /*
-     * Erro de validação.
-     */
+    var customProblem by remember {
+        mutableStateOf("")
+    }
+
+    var photoOneUri by remember {
+        mutableStateOf(initialPhotoOneUri)
+    }
+
+    var photoTwoUri by remember {
+        mutableStateOf(initialPhotoTwoUri)
+    }
+
+    var pendingCameraOneUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    var pendingCameraTwoUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
     var errorMessage by remember {
         mutableStateOf<String?>(null)
     }
 
-    val focusManager: FocusManager =
-        LocalFocusManager.current
+    val backgroundInteractionSource = remember {
+        MutableInteractionSource()
+    }
 
-    val keyboardController =
-        LocalSoftwareKeyboardController.current
+    val mechanicalOptions = listOf(
+        "Veículo não liga",
+        "Bateria descarregada",
+        "Superaquecimento",
+        "Pneu ou roda",
+        "Falha elétrica",
+        "Problema no motor",
+        "Outro problema mecânico"
+    )
 
-    val backgroundInteractionSource =
-        remember {
-            MutableInteractionSource()
+    val accidentOptions = listOf(
+        "Colisão frontal",
+        "Colisão traseira",
+        "Colisão lateral",
+        "Capotamento",
+        "Veículo fora da pista",
+        "Veículo impossibilitado de rodar",
+        "Outro tipo de acidente"
+    )
+
+    val galleryOneLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
+
+            if (uri != null) {
+                photoOneUri = uri.toString()
+                onPhotoOneChanged(uri.toString())
+                errorMessage = null
+            }
         }
 
-    /*
-     * Problemas mecânicos.
-     */
-    val mechanicalProblems =
-        listOf(
-            "Veículo não liga",
-            "Pane mecânica",
-            "Superaquecimento",
-            "Problema elétrico",
-            "Problema na transmissão",
-            "Pneu / roda",
-            "Falta de combustível",
-            "Outro problema mecânico"
-        )
+    val galleryTwoLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri ->
 
-    /*
-     * Problemas relacionados
-     * a acidentes.
-     */
-    val accidentProblems =
-        listOf(
-            "Colisão",
-            "Capotamento",
-            "Veículo fora da pista",
-            "Rodas danificadas",
-            "Suspensão danificada",
-            "Veículo preso",
-            "Outro acidente"
-        )
-
-    /*
-     * Determina qual lista mostrar.
-     */
-    val detailOptions =
-
-        when (
-            selectedProblemType
-        ) {
-
-            "MECHANICAL" ->
-                mechanicalProblems
-
-            "ACCIDENT" ->
-                accidentProblems
-
-            else ->
-                emptyList()
+            if (uri != null) {
+                photoTwoUri = uri.toString()
+                onPhotoTwoChanged(uri.toString())
+                errorMessage = null
+            }
         }
 
+    val cameraOneLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.TakePicture()
+        ) { success ->
+
+            if (success) {
+                pendingCameraOneUri?.let { uri ->
+                    photoOneUri = uri.toString()
+                    onPhotoOneChanged(uri.toString())
+                    errorMessage = null
+                }
+            }
+        }
+
+    val cameraTwoLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.TakePicture()
+        ) { success ->
+
+            if (success) {
+                pendingCameraTwoUri?.let { uri ->
+                    photoTwoUri = uri.toString()
+                    onPhotoTwoChanged(uri.toString())
+                    errorMessage = null
+                }
+            }
+        }
+
+    fun takePhotoOne() {
+        val uri = createTemporaryImageUri(context)
+        pendingCameraOneUri = uri
+        cameraOneLauncher.launch(uri)
+    }
+
+    fun takePhotoTwo() {
+        val uri = createTemporaryImageUri(context)
+        pendingCameraTwoUri = uri
+        cameraTwoLauncher.launch(uri)
+    }
 
     Column(
-
         modifier = Modifier
             .fillMaxSize()
-
-            .background(
-                GuinchouBackground
-            )
-
-            /*
-             * Padrão global dos formulários:
-             *
-             * tocar fora fecha teclado
-             * sem apagar os dados.
-             */
+            .background(GuinchouBackground)
             .clickable(
-                interactionSource =
-                    backgroundInteractionSource,
+                interactionSource = backgroundInteractionSource,
                 indication = null
             ) {
-
                 focusManager.clearFocus()
-
                 keyboardController?.hide()
             }
-
             .statusBarsPadding()
-
             .navigationBarsPadding()
     ) {
 
-        /*
-         * =====================================
-         * CONTEÚDO
-         * =====================================
-         */
         Column(
-
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-
                 .verticalScroll(
                     rememberScrollState()
                 )
-
                 .padding(
                     horizontal = 20.dp,
                     vertical = 16.dp
@@ -240,485 +239,429 @@ fun ProblemScreen(
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp)
             )
 
             Text(
                 text = "O que aconteceu?",
                 color = GuinchouWhite,
                 fontSize = 26.sp,
-                fontWeight =
-                    FontWeight.Bold
+                fontWeight = FontWeight.Bold
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(8.dp)
+                modifier = Modifier.height(8.dp)
             )
 
             Text(
-                text =
-                    "Selecione o tipo de problema do veículo.",
+                text = "Selecione a situação que melhor representa o problema do veículo.",
                 color = GuinchouGray,
                 fontSize = 14.sp
             )
 
             Spacer(
-                modifier =
-                    Modifier.height(26.dp)
+                modifier = Modifier.height(26.dp)
             )
 
-            /*
-             * =====================================
-             * PROBLEMA MECÂNICO
-             * =====================================
-             */
             ProblemTypeCard(
-
-                title =
-                    "Problema mecânico",
-
-                description =
-                    "Pane, falha elétrica, superaquecimento e outros problemas do veículo.",
-
-                selected =
-                    selectedProblemType ==
-                            "MECHANICAL",
-
+                title = "Pane mecânica",
+                description = "Falha mecânica, elétrica ou problema que impeça o veículo de continuar.",
+                selected = problemType == "MECHANICAL",
                 onClick = {
 
-                    selectedProblemType =
-                        "MECHANICAL"
+                    problemType = "MECHANICAL"
+                    problemDetail = ""
+                    customProblem = ""
 
-                    /*
-                     * Ao trocar a categoria,
-                     * limpamos o detalhe antigo.
-                     */
-                    selectedProblemDetail = ""
+                    photoOneUri = null
+                    photoTwoUri = null
+
+                    onPhotoOneChanged(null)
+                    onPhotoTwoChanged(null)
 
                     errorMessage = null
-
-                    focusManager.clearFocus()
-
-                    keyboardController?.hide()
                 }
             )
-
 
             Spacer(
-                modifier =
-                    Modifier.height(12.dp)
+                modifier = Modifier.height(12.dp)
             )
 
-
-            /*
-             * =====================================
-             * ACIDENTE
-             * =====================================
-             */
             ProblemTypeCard(
-
-                title =
-                    "Acidente",
-
-                description =
-                    "Colisão, capotamento ou danos que impedem o veículo de se locomover.",
-
-                selected =
-                    selectedProblemType ==
-                            "ACCIDENT",
-
+                title = "Acidente ou colisão",
+                description = "Batida, colisão, capotamento ou dano que impeça o veículo de rodar.",
+                selected = problemType == "ACCIDENT",
                 onClick = {
 
-                    selectedProblemType =
-                        "ACCIDENT"
-
-                    selectedProblemDetail = ""
-
+                    problemType = "ACCIDENT"
+                    problemDetail = ""
+                    customProblem = ""
                     errorMessage = null
-
-                    focusManager.clearFocus()
-
-                    keyboardController?.hide()
                 }
             )
 
-
-            /*
-             * Se for acidente,
-             * mostramos uma orientação.
-             */
-            if (
-                selectedProblemType ==
-                "ACCIDENT"
-            ) {
+            if (problemType.isNotBlank()) {
 
                 Spacer(
-                    modifier =
-                        Modifier.height(14.dp)
+                    modifier = Modifier.height(24.dp)
                 )
 
                 Text(
-
-                    text =
-                        "Em situações com vítimas ou risco imediato, acione primeiro os serviços públicos de emergência.",
-
-                    color =
-                        GuinchouGray,
-
-                    fontSize = 13.sp
-                )
-            }
-
-
-            /*
-             * =====================================
-             * DETALHAMENTO
-             * =====================================
-             */
-            if (
-                selectedProblemType
-                    .isNotBlank()
-            ) {
-
-                Spacer(
-                    modifier =
-                        Modifier.height(26.dp)
-                )
-
-                Text(
-                    text =
-                        "Selecione o problema",
-                    color =
-                        GuinchouWhite,
-                    fontSize = 16.sp,
-                    fontWeight =
-                        FontWeight.SemiBold
+                    text = if (problemType == "ACCIDENT") {
+                        "Selecione o tipo de acidente"
+                    } else {
+                        "Selecione o problema"
+                    },
+                    color = GuinchouWhite,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Spacer(
-                    modifier =
-                        Modifier.height(12.dp)
+                    modifier = Modifier.height(12.dp)
                 )
 
-                detailOptions.forEach {
-                        detail ->
+                val options =
+                    if (problemType == "ACCIDENT") {
+                        accidentOptions
+                    } else {
+                        mechanicalOptions
+                    }
 
-                    ProblemDetailOption(
+                options.forEach { option ->
 
-                        title = detail,
-
-                        selected =
-                            selectedProblemDetail ==
-                                    detail,
-
+                    ProblemOptionCard(
+                        title = option,
+                        selected = problemDetail == option,
                         onClick = {
 
-                            selectedProblemDetail =
-                                detail
+                            problemDetail = option
+
+                            if (
+                                option != "Outro problema mecânico" &&
+                                option != "Outro tipo de acidente"
+                            ) {
+                                customProblem = ""
+                            }
 
                             errorMessage = null
-
-                            focusManager.clearFocus()
-
-                            keyboardController
-                                ?.hide()
                         }
                     )
 
                     Spacer(
-                        modifier =
-                            Modifier.height(8.dp)
+                        modifier = Modifier.height(10.dp)
                     )
                 }
-            }
 
+                val isOtherSelected =
+                    problemDetail == "Outro problema mecânico" ||
+                            problemDetail == "Outro tipo de acidente"
 
-            Spacer(
-                modifier =
-                    Modifier.height(22.dp)
-            )
+                if (isOtherSelected) {
 
-
-            /*
-             * =====================================
-             * OBSERVAÇÃO
-             * =====================================
-             */
-            OutlinedTextField(
-
-                value =
-                    description,
-
-                onValueChange = {
-
-                    description = it
-
-                    errorMessage = null
-                },
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                label = {
-
-                    Text(
-                        text =
-                            "Observações"
+                    Spacer(
+                        modifier = Modifier.height(4.dp)
                     )
-                },
 
-                placeholder = {
+                    OutlinedTextField(
+                        value = customProblem,
+                        onValueChange = {
 
-                    Text(
-                        text =
-                            "Descreva informações importantes sobre a situação"
+                            customProblem = it
+                            errorMessage = null
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = {
+                            Text(
+                                text = "Descreva o problema"
+                            )
+                        },
+                        placeholder = {
+                            Text(
+                                text = "Informe o que aconteceu"
+                            )
+                        },
+                        minLines = 2,
+                        colors = problemTextFieldColors()
                     )
-                },
-
-                minLines = 3,
-
-                maxLines = 5,
-
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType =
-                            KeyboardType.Text
-                    ),
-
-                colors =
-                    OutlinedTextFieldDefaults
-                        .colors(
-
-                            focusedTextColor =
-                                GuinchouWhite,
-
-                            unfocusedTextColor =
-                                GuinchouWhite,
-
-                            focusedBorderColor =
-                                GuinchouGreen,
-
-                            unfocusedBorderColor =
-                                GuinchouBorder,
-
-                            focusedLabelColor =
-                                GuinchouGreen,
-
-                            unfocusedLabelColor =
-                                GuinchouGray,
-
-                            cursorColor =
-                                GuinchouGreen,
-
-                            focusedContainerColor =
-                                GuinchouSurface,
-
-                            unfocusedContainerColor =
-                                GuinchouSurface
-                        )
-            )
-
-
-            /*
-             * =====================================
-             * ERRO
-             * =====================================
-             */
-            if (
-                errorMessage != null
-            ) {
+                }
 
                 Spacer(
-                    modifier =
-                        Modifier.height(10.dp)
+                    modifier = Modifier.height(18.dp)
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = {
+                        description = it
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Text(
+                            text = "Observações adicionais"
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            text = "Ex.: veículo em local de difícil acesso, roda travada, vazamento etc."
+                        )
+                    },
+                    minLines = 3,
+                    maxLines = 6,
+                    colors = problemTextFieldColors()
+                )
+            }
+
+            if (problemType == "ACCIDENT") {
+
+                Spacer(
+                    modifier = Modifier.height(26.dp)
                 )
 
                 Text(
+                    text = "Fotos do veículo",
+                    color = GuinchouWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
 
+                Spacer(
+                    modifier = Modifier.height(6.dp)
+                )
+
+                Text(
+                    text = "Adicione duas fotos para que o guincheiro consiga avaliar melhor a situação.",
+                    color = GuinchouGray,
+                    fontSize = 13.sp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(16.dp)
+                )
+
+                AccidentPhotoCard(
+                    title = "Foto 1",
+                    subtitle = "Visão geral do veículo",
+                    uriString = photoOneUri,
+                    onCameraClick = {
+                        takePhotoOne()
+                    },
+                    onGalleryClick = {
+                        galleryOneLauncher.launch("image/*")
+                    },
+                    onRemoveClick = {
+
+                        photoOneUri = null
+                        onPhotoOneChanged(null)
+                    }
+                )
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
+
+                AccidentPhotoCard(
+                    title = "Foto 2",
+                    subtitle = "Detalhe da área danificada",
+                    uriString = photoTwoUri,
+                    onCameraClick = {
+                        takePhotoTwo()
+                    },
+                    onGalleryClick = {
+                        galleryTwoLauncher.launch("image/*")
+                    },
+                    onRemoveClick = {
+
+                        photoTwoUri = null
+                        onPhotoTwoChanged(null)
+                    }
+                )
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
+
+                val photoCount =
+                    listOf(
+                        photoOneUri,
+                        photoTwoUri
+                    ).count {
+                        it != null
+                    }
+
+                Text(
                     text =
-                        errorMessage!!,
-
+                        if (photoCount == 2) {
+                            "2 de 2 fotos adicionadas ✓"
+                        } else {
+                            "$photoCount de 2 fotos adicionadas"
+                        },
                     color =
-                        MaterialTheme
-                            .colorScheme
-                            .error,
+                        if (photoCount == 2) {
+                            GuinchouGreen
+                        } else {
+                            GuinchouGray
+                        },
+                    fontSize = 13.sp,
+                    fontWeight =
+                        if (photoCount == 2) {
+                            FontWeight.SemiBold
+                        } else {
+                            FontWeight.Normal
+                        }
+                )
+            }
 
+            if (errorMessage != null) {
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
+
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 13.sp
                 )
             }
 
-
             Spacer(
-                modifier =
-                    Modifier.height(20.dp)
+                modifier = Modifier.height(24.dp)
             )
         }
 
-
-        /*
-         * =====================================
-         * BOTÕES
-         * =====================================
-         */
         Row(
-
             modifier = Modifier
                 .fillMaxWidth()
-
                 .padding(
                     horizontal = 20.dp,
                     vertical = 12.dp
                 ),
-
             horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
-                )
+                Arrangement.spacedBy(12.dp)
         ) {
 
             OutlinedButton(
-
                 onClick = {
 
                     focusManager.clearFocus()
-
-                    keyboardController
-                        ?.hide()
+                    keyboardController?.hide()
 
                     onBackClick()
                 },
-
                 modifier = Modifier
                     .weight(1f)
                     .height(54.dp),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
+                shape = RoundedCornerShape(14.dp)
             ) {
 
                 Text(
                     text = "Voltar",
-                    color =
-                        GuinchouWhite
+                    color = GuinchouWhite
                 )
             }
 
-
             Button(
-
                 onClick = {
 
                     focusManager.clearFocus()
+                    keyboardController?.hide()
 
-                    keyboardController
-                        ?.hide()
-
-
-                    /*
-                     * Categoria obrigatória.
-                     */
-                    if (
-                        selectedProblemType
-                            .isBlank()
-                    ) {
+                    if (problemType.isBlank()) {
 
                         errorMessage =
-                            "Selecione se o problema é mecânico ou acidente."
+                            "Selecione se o problema é pane mecânica ou acidente."
 
                         return@Button
                     }
 
-
-                    /*
-                     * Problema específico obrigatório.
-                     */
-                    if (
-                        selectedProblemDetail
-                            .isBlank()
-                    ) {
+                    if (problemDetail.isBlank()) {
 
                         errorMessage =
-                            "Selecione o tipo de problema."
+                            "Selecione uma das opções disponíveis."
 
                         return@Button
                     }
 
+                    val isOtherSelected =
+                        problemDetail == "Outro problema mecânico" ||
+                                problemDetail == "Outro tipo de acidente"
+
+                    if (
+                        isOtherSelected &&
+                        customProblem.isBlank()
+                    ) {
+
+                        errorMessage =
+                            "Descreva o problema para continuar."
+
+                        return@Button
+                    }
+
+                    if (
+                        problemType == "ACCIDENT" &&
+                        (
+                                photoOneUri == null ||
+                                        photoTwoUri == null
+                                )
+                    ) {
+
+                        errorMessage =
+                            "Adicione as duas fotos do veículo para continuar."
+
+                        return@Button
+                    }
+
+                    val finalProblemDetail =
+                        if (isOtherSelected) {
+                            customProblem.trim()
+                        } else {
+                            problemDetail
+                        }
 
                     onContinueClick(
-
-                        selectedProblemType,
-
-                        selectedProblemDetail,
-
+                        problemType,
+                        finalProblemDetail,
                         description.trim()
                     )
                 },
-
                 modifier = Modifier
                     .weight(1.4f)
                     .height(54.dp),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    ),
-
+                shape = RoundedCornerShape(14.dp),
                 colors =
-                    ButtonDefaults
-                        .buttonColors(
-
-                            containerColor =
-                                GuinchouGreen,
-
-                            contentColor =
-                                GuinchouBackground
-                        )
+                    ButtonDefaults.buttonColors(
+                        containerColor =
+                            GuinchouGreen,
+                        contentColor =
+                            GuinchouBackground
+                    )
             ) {
 
                 Text(
                     text = "Continuar",
-                    fontWeight =
-                        FontWeight.Bold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
     }
 }
 
-
-/**
- * Card da categoria principal.
- */
 @Composable
 private fun ProblemTypeCard(
-
     title: String,
-
     description: String,
-
     selected: Boolean,
-
     onClick: () -> Unit
 ) {
 
     Column(
-
         modifier = Modifier
             .fillMaxWidth()
-
             .background(
-                color =
-                    GuinchouSurface,
-                shape =
-                    RoundedCornerShape(
-                        16.dp
-                    )
+                color = GuinchouSurface,
+                shape = RoundedCornerShape(16.dp)
             )
-
             .border(
                 width =
                     if (selected) {
@@ -726,69 +669,68 @@ private fun ProblemTypeCard(
                     } else {
                         1.dp
                     },
-
                 color =
                     if (selected) {
                         GuinchouGreen
                     } else {
                         GuinchouBorder
                     },
-
-                shape =
-                    RoundedCornerShape(
-                        16.dp
-                    )
+                shape = RoundedCornerShape(16.dp)
             )
-
             .clickable {
                 onClick()
             }
-
             .padding(16.dp)
     ) {
 
-        Text(
-            text = title,
-            color =
-                GuinchouWhite,
-            fontSize = 16.sp,
-            fontWeight =
-                FontWeight.SemiBold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                Arrangement.SpaceBetween,
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = title,
+                color = GuinchouWhite,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (selected) {
+
+                Text(
+                    text = "✓",
+                    color = GuinchouGreen,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         Spacer(
-            modifier =
-                Modifier.height(5.dp)
+            modifier = Modifier.height(5.dp)
         )
 
         Text(
             text = description,
-            color =
-                GuinchouGray,
+            color = GuinchouGray,
             fontSize = 13.sp
         )
     }
 }
 
-
-/**
- * Opção específica do problema.
- */
 @Composable
-private fun ProblemDetailOption(
-
+private fun ProblemOptionCard(
     title: String,
-
     selected: Boolean,
-
     onClick: () -> Unit
 ) {
 
     Row(
-
         modifier = Modifier
             .fillMaxWidth()
-
             .background(
                 color =
                     if (selected) {
@@ -796,13 +738,9 @@ private fun ProblemDetailOption(
                     } else {
                         GuinchouBackground
                     },
-
                 shape =
-                    RoundedCornerShape(
-                        13.dp
-                    )
+                    RoundedCornerShape(14.dp)
             )
-
             .border(
                 width =
                     if (selected) {
@@ -810,52 +748,323 @@ private fun ProblemDetailOption(
                     } else {
                         1.dp
                     },
-
                 color =
                     if (selected) {
                         GuinchouGreen
                     } else {
                         GuinchouBorder
                     },
-
                 shape =
-                    RoundedCornerShape(
-                        13.dp
-                    )
+                    RoundedCornerShape(14.dp)
             )
-
             .clickable {
                 onClick()
             }
-
-            .padding(14.dp),
-
+            .padding(
+                horizontal = 16.dp,
+                vertical = 15.dp
+            ),
+        verticalAlignment =
+            Alignment.CenterVertically,
         horizontalArrangement =
             Arrangement.SpaceBetween
     ) {
 
         Text(
             text = title,
-            color =
+            color = GuinchouWhite,
+            fontSize = 14.sp,
+            fontWeight =
                 if (selected) {
-                    GuinchouWhite
+                    FontWeight.SemiBold
                 } else {
-                    GuinchouGray
+                    FontWeight.Normal
                 },
-            fontSize = 14.sp
+            modifier = Modifier.weight(1f)
+        )
+
+        if (selected) {
+
+            Spacer(
+                modifier = Modifier.size(10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .background(
+                        color = GuinchouGreen,
+                        shape = CircleShape
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Text(
+                    text = "✓",
+                    color = GuinchouBackground,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccidentPhotoCard(
+    title: String,
+    subtitle: String,
+    uriString: String?,
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    onRemoveClick: () -> Unit
+) {
+
+    val context = LocalContext.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = GuinchouSurface,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.dp,
+                color =
+                    if (uriString != null) {
+                        GuinchouGreen
+                    } else {
+                        GuinchouBorder
+                    },
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(14.dp)
+    ) {
+
+        Text(
+            text = title,
+            color = GuinchouWhite,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Spacer(
+            modifier = Modifier.height(3.dp)
         )
 
         Text(
-            text =
-                if (selected) {
-                    "✓"
-                } else {
-                    ""
-                },
-            color =
-                GuinchouGreen,
-            fontWeight =
-                FontWeight.Bold
+            text = subtitle,
+            color = GuinchouGray,
+            fontSize = 12.sp
         )
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        if (uriString != null) {
+
+            val imageBitmap =
+                rememberImageBitmapFromUri(
+                    context = context,
+                    uriString = uriString
+                )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(190.dp)
+                    .background(
+                        color = GuinchouBackground,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                if (imageBitmap != null) {
+
+                    Image(
+                        bitmap = imageBitmap,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+
+                } else {
+
+                    Text(
+                        text = "Foto adicionada ✓",
+                        color = GuinchouGreen,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            OutlinedButton(
+                onClick = onRemoveClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+
+                Text(
+                    text = "Remover foto",
+                    color = GuinchouWhite
+                )
+            }
+
+        } else {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .background(
+                        color = GuinchouBackground,
+                        shape = RoundedCornerShape(12.dp)
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Column(
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+
+                    Text(
+                        text = "+",
+                        color = GuinchouGreen,
+                        fontSize = 30.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Nenhuma foto adicionada",
+                        color = GuinchouGray,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(10.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement =
+                    Arrangement.spacedBy(10.dp)
+            ) {
+
+                Button(
+                    onClick = onCameraClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = GuinchouGreen,
+                            contentColor = GuinchouBackground
+                        )
+                ) {
+
+                    Text(
+                        text = "Tirar foto",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = onGalleryClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+
+                    Text(
+                        text = "Galeria",
+                        color = GuinchouWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun problemTextFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = GuinchouWhite,
+        unfocusedTextColor = GuinchouWhite,
+        focusedBorderColor = GuinchouGreen,
+        unfocusedBorderColor = GuinchouBorder,
+        focusedLabelColor = GuinchouGreen,
+        unfocusedLabelColor = GuinchouGray,
+        cursorColor = GuinchouGreen,
+        focusedContainerColor = GuinchouSurface,
+        unfocusedContainerColor = GuinchouSurface
+    )
+
+private fun createTemporaryImageUri(
+    context: Context
+): Uri {
+
+    val imagesDirectory =
+        File(
+            context.cacheDir,
+            "images"
+        )
+
+    if (!imagesDirectory.exists()) {
+        imagesDirectory.mkdirs()
+    }
+
+    val imageFile =
+        File.createTempFile(
+            "guinchou_",
+            ".jpg",
+            imagesDirectory
+        )
+
+    return FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        imageFile
+    )
+}
+
+@Composable
+private fun rememberImageBitmapFromUri(
+    context: Context,
+    uriString: String
+): ImageBitmap? {
+
+    return remember(uriString) {
+
+        try {
+
+            val uri = Uri.parse(uriString)
+
+            context
+                .contentResolver
+                .openInputStream(uri)
+                ?.use { inputStream ->
+
+                    BitmapFactory
+                        .decodeStream(inputStream)
+                        ?.asImageBitmap()
+                }
+
+        } catch (
+            exception: Exception
+        ) {
+
+            null
+        }
     }
 }

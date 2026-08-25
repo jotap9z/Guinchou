@@ -1,40 +1,21 @@
 plugins {
-
     alias(libs.plugins.android.application)
-
-    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
 
     namespace = "com.guinchou.app"
 
-    /*
-     * Atualizado para API 37.
-     *
-     * Algumas bibliotecas atuais do AndroidX,
-     * como Lifecycle 2.11.0, exigem compileSdk 37.
-     *
-     * Isso NÃO significa que o aplicativo
-     * só funcionará no Android 17.
-     */
     compileSdk = 37
 
     defaultConfig {
 
         applicationId = "com.guinchou.app"
 
-        /*
-         * Continua suportando Android 7.0+
-         * conforme configuramos anteriormente.
-         */
-        minSdk = 24
+        minSdk = 26
 
-        /*
-         * Mantemos o target atual em 35.
-         *
-         * compileSdk e targetSdk são independentes.
-         */
         targetSdk = 35
 
         versionCode = 1
@@ -79,47 +60,60 @@ dependencies {
 
     /*
      * =========================================
-     * COMPOSE BOM
+     * COMPOSE
      * =========================================
      */
 
-    implementation(
+    val composeBom =
         platform(
-            libs.androidx.compose.bom
+            "androidx.compose:compose-bom:2026.08.00"
         )
+
+    implementation(composeBom)
+
+    androidTestImplementation(
+        composeBom
+    )
+
+    implementation(
+        "androidx.compose.runtime:runtime"
+    )
+
+    implementation(
+        "androidx.compose.ui:ui"
+    )
+
+    implementation(
+        "androidx.compose.ui:ui-graphics"
+    )
+
+    implementation(
+        "androidx.compose.ui:ui-tooling-preview"
+    )
+
+    implementation(
+        "androidx.compose.foundation:foundation"
+    )
+
+    implementation(
+        "androidx.compose.material3:material3"
     )
 
 
     /*
      * =========================================
-     * JETPACK COMPOSE
+     * ACTIVITY
      * =========================================
      */
 
     implementation(
-        libs.androidx.activity.compose
-    )
-
-    implementation(
-        libs.androidx.compose.material3
-    )
-
-    implementation(
-        libs.androidx.compose.ui
-    )
-
-    implementation(
-        libs.androidx.compose.ui.graphics
-    )
-
-    implementation(
-        libs.androidx.compose.ui.tooling.preview
+        "androidx.activity:activity-compose:1.13.0"
     )
 
 
     /*
      * =========================================
-     * ANDROID CORE
+     * CORE
      * =========================================
      */
 
@@ -127,16 +121,16 @@ dependencies {
         libs.androidx.core.ktx
     )
 
-    implementation(
-        libs.androidx.lifecycle.runtime.ktx
-    )
-
 
     /*
      * =========================================
-     * VIEWMODEL + COMPOSE
+     * LIFECYCLE
      * =========================================
      */
+
+    implementation(
+        "androidx.lifecycle:lifecycle-runtime-ktx:2.11.0"
+    )
 
     implementation(
         "androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0"
@@ -156,6 +150,57 @@ dependencies {
 
     /*
      * =========================================
+     * GPS
+     * =========================================
+     */
+
+    implementation(
+        "com.google.android.gms:play-services-location:21.4.0"
+    )
+
+
+    /*
+     * =========================================
+     * SUPABASE
+     * =========================================
+     */
+
+    implementation(
+        platform(
+            "io.github.jan-tennert.supabase:bom:3.7.0"
+        )
+    )
+
+    implementation(
+        "io.github.jan-tennert.supabase:postgrest-kt"
+    )
+
+    implementation(
+        "io.github.jan-tennert.supabase:auth-kt"
+    )
+
+    implementation(
+        "io.github.jan-tennert.supabase:realtime-kt"
+    )
+
+    implementation(
+        "io.github.jan-tennert.supabase:storage-kt"
+    )
+
+
+    /*
+     * =========================================
+     * KTOR
+     * =========================================
+     */
+
+    implementation(
+        "io.ktor:ktor-client-android:3.5.1"
+    )
+
+
+    /*
+     * =========================================
      * TESTES
      * =========================================
      */
@@ -165,13 +210,7 @@ dependencies {
     )
 
     androidTestImplementation(
-        platform(
-            libs.androidx.compose.bom
-        )
-    )
-
-    androidTestImplementation(
-        libs.androidx.compose.ui.test.junit4
+        "androidx.compose.ui:ui-test-junit4"
     )
 
     androidTestImplementation(
@@ -190,10 +229,10 @@ dependencies {
      */
 
     debugImplementation(
-        libs.androidx.compose.ui.test.manifest
+        "androidx.compose.ui:ui-tooling"
     )
 
     debugImplementation(
-        libs.androidx.compose.ui.tooling
+        "androidx.compose.ui:ui-test-manifest"
     )
 }
