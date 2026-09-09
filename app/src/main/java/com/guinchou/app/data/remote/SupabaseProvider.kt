@@ -9,71 +9,92 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 
 /**
- * =============================================
- * SUPABASE PROVIDER
- * =============================================
- *
- * Cliente central utilizado pelo Guinchou
- * para comunicação com o Supabase.
+ * Cliente central do Supabase utilizado pelo Guinchou.
  */
 object SupabaseProvider {
 
     val client: SupabaseClient by lazy {
 
         /*
-         * =========================================
-         * VALIDAR URL
-         * =========================================
+         * Remove espaços acidentais.
          */
+        val configuredUrl =
+            SupabaseConfig.URL.trim()
 
+        /*
+         * Proteção contra URL vazia.
+         */
         require(
-            SupabaseConfig.URL.isNotBlank() &&
-                    SupabaseConfig.URL !=
-                    "COLE_AQUI_SUA_PROJECT_URL"
+            configuredUrl.isNotBlank()
         ) {
-
-            "Configure a Project URL em SupabaseConfig.kt."
+            "A URL do Supabase não foi configurada."
         }
 
+        /*
+         * A Publishable Key também precisa existir.
+         */
+        require(
+            SupabaseConfig.PUBLISHABLE_KEY
+                .trim()
+                .isNotBlank()
+        ) {
+            "A Publishable Key do Supabase não foi configurada."
+        }
 
         /*
          * =========================================
-         * VALIDAR PUBLISHABLE KEY
+         * NORMALIZAÇÃO DA URL
          * =========================================
+         *
+         * O supabase-kt precisa somente da URL base.
+         *
+         * Exemplo:
+         *
+         * https://abc.supabase.co
+         *
+         * Se /rest/v1 tiver sido colocado por engano,
+         * removemos.
          */
 
-        require(
-            SupabaseConfig
-                .PUBLISHABLE_KEY
-                .isNotBlank() &&
-                    SupabaseConfig
-                        .PUBLISHABLE_KEY !=
-                    "COLE_AQUI_SUA_PUBLISHABLE_KEY"
-        ) {
-
-            "Configure a Publishable Key em SupabaseConfig.kt."
-        }
+        val normalizedUrl =
+            configuredUrl
+                .removeSuffix("/")
+                .removeSuffix("/rest/v1")
+                .removeSuffix("/rest/v1/")
+                .removeSuffix("/auth/v1")
+                .removeSuffix("/auth/v1/")
+                .removeSuffix("/storage/v1")
+                .removeSuffix("/storage/v1/")
+                .removeSuffix("/realtime/v1")
+                .removeSuffix("/realtime/v1/")
 
 
         /*
-         * =========================================
-         * CRIAR CLIENTE
-         * =========================================
+         * Ainda fazemos uma validação básica.
          */
+        require(
+            normalizedUrl.startsWith(
+                "https://"
+            )
+        ) {
+            "A URL do Supabase precisa começar com https://"
+        }
+
 
         createSupabaseClient(
 
             supabaseUrl =
-                SupabaseConfig.URL,
+                normalizedUrl,
 
             supabaseKey =
                 SupabaseConfig
                     .PUBLISHABLE_KEY
+                    .trim()
 
         ) {
 
             /*
-             * Login / cadastro.
+             * Cadastro e login.
              */
             install(
                 Auth
@@ -81,7 +102,7 @@ object SupabaseProvider {
 
 
             /*
-             * PostgreSQL / Data API.
+             * Banco PostgreSQL.
              */
             install(
                 Postgrest

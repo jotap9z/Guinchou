@@ -1,21 +1,19 @@
 package com.guinchou.app
 
 import android.app.Application
-import com.guinchou.app.data.remote.SupabaseProvider
 
 /**
  * Application principal do Guinchou.
+ *
+ * Neste momento não inicializamos
+ * serviços de rede aqui.
+ *
+ * O Supabase será criado somente quando
+ * algum Repository realmente precisar dele.
  */
 class GuinchouApp : Application() {
 
     override fun onCreate() {
-
         super.onCreate()
-
-        /*
-         * Inicializa o cliente Supabase
-         * quando o aplicativo é aberto.
-         */
-        SupabaseProvider.client
     }
 }

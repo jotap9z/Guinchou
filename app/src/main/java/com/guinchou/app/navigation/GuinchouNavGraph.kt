@@ -22,19 +22,13 @@ import com.guinchou.app.viewmodel.TowRequestViewModel
 
 @Composable
 fun GuinchouNavGraph(
-
-    navController:
-    NavHostController,
-
-    towRequestViewModel:
-    TowRequestViewModel
+    navController: NavHostController,
+    towRequestViewModel: TowRequestViewModel
 ) {
 
     NavHost(
-        navController =
-            navController,
-        startDestination =
-            Routes.SPLASH
+        navController = navController,
+        startDestination = Routes.SPLASH
     ) {
 
         /*
@@ -44,8 +38,7 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.SPLASH
+            route = Routes.SPLASH
         ) {
 
             SplashScreen(
@@ -58,8 +51,7 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.SPLASH
                         ) {
-                            inclusive =
-                                true
+                            inclusive = true
                         }
                     }
                 }
@@ -74,14 +66,12 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.LOGIN
+            route = Routes.LOGIN
         ) {
 
             LoginScreen(
 
-                onLoginClick = {
-                        _, _ ->
+                onLoginClick = { _, _ ->
 
                     openHome(
                         navController
@@ -120,8 +110,7 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.PARTNER
+            route = Routes.PARTNER
         ) {
 
             PartnerTypeScreen(
@@ -136,8 +125,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -150,16 +138,14 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.HOME
+            route = Routes.HOME
         ) {
 
             HomeScreen(
 
                 onRequestTowClick = {
 
-                    towRequestViewModel
-                        .clearRequest()
+                    towRequestViewModel.clearRequest()
 
                     navController.navigate(
                         Routes.PICKUP
@@ -184,8 +170,7 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.PICKUP
+            route = Routes.PICKUP
         ) {
 
             PickupScreen(
@@ -197,22 +182,16 @@ fun GuinchouNavGraph(
                         source ->
 
                     if (
-                        source ==
-                        "GPS" &&
-                        latitude !=
-                        null &&
-                        longitude !=
-                        null
+                        source == "GPS" &&
+                        latitude != null &&
+                        longitude != null
                     ) {
 
                         towRequestViewModel
                             .updatePickupFromGps(
-                                address =
-                                    address,
-                                latitude =
-                                    latitude,
-                                longitude =
-                                    longitude
+                                address = address,
+                                latitude = latitude,
+                                longitude = longitude
                             )
 
                     } else {
@@ -230,8 +209,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -244,8 +222,7 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.DESTINATION
+            route = Routes.DESTINATION
         ) {
 
             DestinationScreen(
@@ -265,8 +242,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -279,8 +255,7 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.VEHICLE
+            route = Routes.VEHICLE
         ) {
 
             VehicleScreen(
@@ -294,16 +269,11 @@ fun GuinchouNavGraph(
 
                     towRequestViewModel
                         .updateVehicle(
-                            type =
-                                vehicleType,
-                            brand =
-                                brand,
-                            model =
-                                model,
-                            year =
-                                year,
-                            plate =
-                                plate
+                            type = vehicleType,
+                            brand = brand,
+                            model = model,
+                            year = year,
+                            plate = plate
                         )
 
                     navController.navigate(
@@ -313,8 +283,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -327,34 +296,27 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.PROBLEM
+            route = Routes.PROBLEM
         ) {
 
             ProblemScreen(
 
                 initialProblemType =
-                    towRequestViewModel
-                        .problemType,
+                    towRequestViewModel.problemType,
 
                 initialProblemDetail =
-                    towRequestViewModel
-                        .problemDetail,
+                    towRequestViewModel.problemDetail,
 
                 initialDescription =
-                    towRequestViewModel
-                        .problemDescription,
+                    towRequestViewModel.problemDescription,
 
                 initialPhotoOneUri =
-                    towRequestViewModel
-                        .vehiclePhotoOneUri,
+                    towRequestViewModel.vehiclePhotoOneUri,
 
                 initialPhotoTwoUri =
-                    towRequestViewModel
-                        .vehiclePhotoTwoUri,
+                    towRequestViewModel.vehiclePhotoTwoUri,
 
-                onPhotoOneChanged = {
-                        uri ->
+                onPhotoOneChanged = { uri ->
 
                     if (
                         uri != null
@@ -372,8 +334,7 @@ fun GuinchouNavGraph(
                     }
                 },
 
-                onPhotoTwoChanged = {
-                        uri ->
+                onPhotoTwoChanged = { uri ->
 
                     if (
                         uri != null
@@ -398,17 +359,13 @@ fun GuinchouNavGraph(
 
                     towRequestViewModel
                         .updateProblem(
-                            type =
-                                problemType,
-                            detail =
-                                problemDetail,
-                            description =
-                                description
+                            type = problemType,
+                            detail = problemDetail,
+                            description = description
                         )
 
                     if (
-                        problemType ==
-                        "ACCIDENT" &&
+                        problemType == "ACCIDENT" &&
                         !towRequestViewModel
                             .hasRequiredAccidentPhotos()
                     ) {
@@ -416,9 +373,6 @@ fun GuinchouNavGraph(
                         return@ProblemScreen
                     }
 
-                    /*
-                     * Temporário.
-                     */
                     towRequestViewModel
                         .calculateEstimate(
                             18.0
@@ -431,8 +385,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -445,43 +398,34 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.ESTIMATE
+            route = Routes.ESTIMATE
         ) {
 
             EstimateScreen(
 
                 pickupAddress =
-                    towRequestViewModel
-                        .pickupAddress,
+                    towRequestViewModel.pickupAddress,
 
                 destinationAddress =
-                    towRequestViewModel
-                        .destinationAddress,
+                    towRequestViewModel.destinationAddress,
 
                 vehicleType =
-                    towRequestViewModel
-                        .vehicleType,
+                    towRequestViewModel.vehicleType,
 
                 vehicleBrand =
-                    towRequestViewModel
-                        .vehicleBrand,
+                    towRequestViewModel.vehicleBrand,
 
                 vehicleModel =
-                    towRequestViewModel
-                        .vehicleModel,
+                    towRequestViewModel.vehicleModel,
 
                 problemDetail =
-                    towRequestViewModel
-                        .problemDetail,
+                    towRequestViewModel.problemDetail,
 
                 distanceKm =
-                    towRequestViewModel
-                        .distanceKm,
+                    towRequestViewModel.distanceKm,
 
                 servicePrice =
-                    towRequestViewModel
-                        .servicePrice,
+                    towRequestViewModel.servicePrice,
 
                 onContinueClick = {
 
@@ -492,8 +436,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -506,18 +449,15 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.PAYMENT
+            route = Routes.PAYMENT
         ) {
 
             PaymentScreen(
 
                 servicePrice =
-                    towRequestViewModel
-                        .servicePrice,
+                    towRequestViewModel.servicePrice,
 
-                onConfirmPaymentClick = {
-                        _ ->
+                onConfirmPaymentClick = { _ ->
 
                     towRequestViewModel
                         .startSearching()
@@ -529,8 +469,7 @@ fun GuinchouNavGraph(
 
                 onBackClick = {
 
-                    navController
-                        .popBackStack()
+                    navController.popBackStack()
                 }
             )
         }
@@ -543,35 +482,28 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.SEARCHING
+            route = Routes.SEARCHING
         ) {
 
             SearchingScreen(
 
                 pickupAddress =
-                    towRequestViewModel
-                        .pickupAddress,
+                    towRequestViewModel.pickupAddress,
 
                 destinationAddress =
-                    towRequestViewModel
-                        .destinationAddress,
+                    towRequestViewModel.destinationAddress,
 
                 vehicleBrand =
-                    towRequestViewModel
-                        .vehicleBrand,
+                    towRequestViewModel.vehicleBrand,
 
                 vehicleModel =
-                    towRequestViewModel
-                        .vehicleModel,
+                    towRequestViewModel.vehicleModel,
 
                 problemDetail =
-                    towRequestViewModel
-                        .problemDetail,
+                    towRequestViewModel.problemDetail,
 
                 servicePrice =
-                    towRequestViewModel
-                        .servicePrice,
+                    towRequestViewModel.servicePrice,
 
                 onTowFound = {
 
@@ -596,8 +528,7 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.SEARCHING
                         ) {
-                            inclusive =
-                                true
+                            inclusive = true
                         }
                     }
                 },
@@ -617,8 +548,7 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.HOME
                         ) {
-                            inclusive =
-                                false
+                            inclusive = false
                         }
                     }
                 }
@@ -633,43 +563,34 @@ fun GuinchouNavGraph(
          */
 
         composable(
-            route =
-                Routes.TRACKING
+            route = Routes.TRACKING
         ) {
 
             TrackingScreen(
 
                 pickupAddress =
-                    towRequestViewModel
-                        .pickupAddress,
+                    towRequestViewModel.pickupAddress,
 
                 destinationAddress =
-                    towRequestViewModel
-                        .destinationAddress,
+                    towRequestViewModel.destinationAddress,
 
                 driverName =
-                    towRequestViewModel
-                        .acceptedDriverName,
+                    towRequestViewModel.acceptedDriverName,
 
                 towTruckDescription =
-                    towRequestViewModel
-                        .acceptedTowTruckDescription,
+                    towRequestViewModel.acceptedTowTruckDescription,
 
                 towTruckPlate =
-                    towRequestViewModel
-                        .acceptedTowTruckPlate,
+                    towRequestViewModel.acceptedTowTruckPlate,
 
                 estimatedArrivalMinutes =
-                    towRequestViewModel
-                        .estimatedArrivalMinutes,
+                    towRequestViewModel.estimatedArrivalMinutes,
 
                 driverRating =
-                    towRequestViewModel
-                        .acceptedDriverRating,
+                    towRequestViewModel.acceptedDriverRating,
 
                 requestStatus =
-                    towRequestViewModel
-                        .requestStatus,
+                    towRequestViewModel.requestStatus,
 
                 onCallClick = {
 
@@ -679,20 +600,10 @@ fun GuinchouNavGraph(
 
                 },
 
-
-                /*
-                 * =================================
-                 * SIMULAÇÃO DOS ESTADOS
-                 * =================================
-                 *
-                 * Isso será removido quando
-                 * conectarmos o app do parceiro.
-                 */
                 onAdvanceTestClick = {
 
                     when (
-                        towRequestViewModel
-                            .requestStatus
+                        towRequestViewModel.requestStatus
                     ) {
 
                         TowRequestStatus
@@ -702,7 +613,6 @@ fun GuinchouNavGraph(
                                 .markDriverArrived()
                         }
 
-
                         TowRequestStatus
                             .ARRIVED -> {
 
@@ -710,14 +620,12 @@ fun GuinchouNavGraph(
                                 .markVehicleLoaded()
                         }
 
-
                         TowRequestStatus
                             .VEHICLE_LOADED -> {
 
                             towRequestViewModel
                                 .startTransport()
                         }
-
 
                         TowRequestStatus
                             .IN_TRANSIT -> {
@@ -732,19 +640,16 @@ fun GuinchouNavGraph(
                                 popUpTo(
                                     Routes.TRACKING
                                 ) {
-                                    inclusive =
-                                        true
+                                    inclusive = true
                                 }
                             }
                         }
-
 
                         else -> {
 
                         }
                     }
                 },
-
 
                 onCancelClick = {
 
@@ -761,8 +666,7 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.HOME
                         ) {
-                            inclusive =
-                                false
+                            inclusive = false
                         }
                     }
                 }
@@ -772,43 +676,29 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * SERVIÇO CONCLUÍDO
+         * CONCLUÍDO
          * =========================================
          */
 
         composable(
-            route =
-                Routes.COMPLETED
+            route = Routes.COMPLETED
         ) {
 
             CompletedScreen(
 
                 driverName =
-                    towRequestViewModel
-                        .acceptedDriverName,
+                    towRequestViewModel.acceptedDriverName,
 
                 pickupAddress =
-                    towRequestViewModel
-                        .pickupAddress,
+                    towRequestViewModel.pickupAddress,
 
                 destinationAddress =
-                    towRequestViewModel
-                        .destinationAddress,
+                    towRequestViewModel.destinationAddress,
 
                 servicePrice =
-                    towRequestViewModel
-                        .servicePrice,
+                    towRequestViewModel.servicePrice,
 
-                onFinishClick = {
-                        rating ->
-
-                    /*
-                     * Rating será enviado para
-                     * o backend posteriormente.
-                     *
-                     * Por enquanto apenas
-                     * encerramos o fluxo.
-                     */
+                onFinishClick = { _ ->
 
                     towRequestViewModel
                         .clearRequest()
@@ -820,8 +710,7 @@ fun GuinchouNavGraph(
                         popUpTo(
                             Routes.HOME
                         ) {
-                            inclusive =
-                                false
+                            inclusive = false
                         }
                     }
                 }
@@ -832,8 +721,7 @@ fun GuinchouNavGraph(
 
 
 private fun openHome(
-    navController:
-    NavHostController
+    navController: NavHostController
 ) {
 
     navController.navigate(
@@ -843,8 +731,7 @@ private fun openHome(
         popUpTo(
             Routes.LOGIN
         ) {
-            inclusive =
-                true
+            inclusive = true
         }
     }
 }

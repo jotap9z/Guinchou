@@ -2,15 +2,17 @@ package com.guinchou.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.navigation.compose.rememberNavController
+import com.guinchou.app.navigation.GuinchouNavGraph
 import com.guinchou.app.ui.theme.GuinchouTheme
+import com.guinchou.app.viewmodel.TowRequestViewModel
 
-/**
- * Activity principal do Guinchou.
- */
 class MainActivity : ComponentActivity() {
+
+    private val towRequestViewModel:
+            TowRequestViewModel by viewModels()
 
     override fun onCreate(
         savedInstanceState: Bundle?
@@ -20,43 +22,19 @@ class MainActivity : ComponentActivity() {
             savedInstanceState
         )
 
-        /*
-         * Habilita Edge-to-Edge.
-         *
-         * O conteúdo pode utilizar toda
-         * a tela do aparelho.
-         *
-         * Cada tela controla os espaços
-         * seguros através do WindowInsets.
-         */
-        enableEdgeToEdge(
-
-            /*
-             * Ícones claros na barra superior,
-             * porque o Guinchou possui fundo escuro.
-             */
-            statusBarStyle =
-                SystemBarStyle.dark(
-                    android.graphics.Color.TRANSPARENT
-                ),
-
-            /*
-             * Ícones claros na barra inferior.
-             */
-            navigationBarStyle =
-                SystemBarStyle.dark(
-                    android.graphics.Color.TRANSPARENT
-                )
-        )
-
-        /*
-         * Inicia Jetpack Compose.
-         */
         setContent {
 
             GuinchouTheme {
 
-                GuinchouApp()
+                val navController =
+                    rememberNavController()
+
+                GuinchouNavGraph(
+                    navController =
+                        navController,
+                    towRequestViewModel =
+                        towRequestViewModel
+                )
             }
         }
     }
