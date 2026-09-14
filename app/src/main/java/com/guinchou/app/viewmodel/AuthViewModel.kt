@@ -13,7 +13,7 @@ class AuthViewModel : ViewModel() {
 
     private val _uiState =
         MutableStateFlow(
-            AuthUiState()
+            AuthUiState(),
         )
 
     val uiState: StateFlow<AuthUiState> =
@@ -41,8 +41,8 @@ class AuthViewModel : ViewModel() {
          * a integração total com o Supabase.
          */
         if (
-            email == "admin@guinchou.com" &&
-            password == "123456"
+            (email == "admin@guinchou.com") &&
+            (password == "123456")
         ) {
 
             _uiState.value =
@@ -59,6 +59,17 @@ class AuthViewModel : ViewModel() {
                     errorMessage = "E-mail ou senha incorretos."
                 )
         }
+    }
+
+    /**
+     * Realiza o encerramento da sessão.
+     */
+    fun signOut() {
+        _uiState.value =
+            _uiState.value.copy(
+                isAuthenticated = false,
+                errorMessage = null
+            )
     }
 }
 
