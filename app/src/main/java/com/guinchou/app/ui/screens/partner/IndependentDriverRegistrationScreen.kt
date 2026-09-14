@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -48,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,7 +57,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
@@ -67,9 +68,23 @@ import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 
 private const val REGISTRATION_STEPS = 6
 private const val REGISTRATION_FEE = 10.0
+
+
+private data class CepAddressResult(
+    val street: String,
+    val neighborhood: String,
+    val city: String,
+    val state: String
+)
 
 private data class DriverRegistrationData(
     val fullName: String = "",
@@ -238,6 +253,24 @@ private fun PersonalDataStep(
     var categoryExpanded by remember { mutableStateOf(false) }
     var acceptedInformation by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var isSearchingCep by remember {
+        mutableStateOf(false)
+    }
+
+    var cepLookupMessage by remember {
+        mutableStateOf<String?>(null)
+    }
+
+    var cepLookupSucceeded by remember {
+        mutableStateOf(false)
+    }
+
+    var lastSearchedCep by remember {
+        mutableStateOf("")
+    }
+
+    val coroutineScope = rememberCoroutineScope()
 
     val cnhCategories = listOf("A", "B", "AB", "C", "D", "E", "AC", "AD", "AE")
 
@@ -411,11 +444,134 @@ private fun PersonalDataStep(
             label = "CEP",
             required = true,
             keyboardType = KeyboardType.Number,
-            onValueChange = {
-                cep = formatCep(it)
+            onValueChange = { newValue ->
+
+                val formattedCep =
+                    formatCep(newValue)
+
+                val cepDigits =
+                    formattedCep
+                        .filter(Char::isDigit)
+
+                cep = formattedCep
                 errorMessage = null
+
+                /*
+                 * Ao completar os 8 dígitos,
+                 * o app consulta automaticamente o ViaCEP.
+                 */
+                if (
+                    cepDigits.length == 8 &&
+                    cepDigits != lastSearchedCep
+                ) {
+
+                    lastSearchedCep = cepDigits
+                    isSearchingCep = true
+                    cepLookupMessage =
+                        "Buscando endereço..."
+                    cepLookupSucceeded = false
+
+                    coroutineScope.launch {
+
+                        val requestedCep =
+                            cepDigits
+
+                        val result =
+                            fetchAddressByCep(
+                                requestedCep
+                            )
+
+                        /*
+                         * Só aplica a resposta se o usuário
+                         * ainda estiver com o mesmo CEP.
+                         */
+                        if (
+                            cep
+                                .filter(Char::isDigit) ==
+                            requestedCep
+                        ) {
+
+                            isSearchingCep = false
+
+                            result.onSuccess {
+                                    cepAddress ->
+
+                                if (
+                                    cepAddress.street
+                                        .isNotBlank()
+                                ) {
+
+                                    address =
+                                        cepAddress.street
+                                }
+
+                                city =
+                                    cepAddress.city
+
+                                state =
+                                    cepAddress.state
+
+                                cepLookupSucceeded = true
+
+                                cepLookupMessage =
+                                    if (
+                                        cepAddress.street
+                                            .isBlank()
+                                    ) {
+                                        "CEP encontrado. Preencha o endereço e o número."
+                                    } else {
+                                        "Endereço encontrado e preenchido automaticamente."
+                                    }
+                            }
+
+                            result.onFailure {
+
+                                cepLookupSucceeded = false
+
+                                cepLookupMessage =
+                                    "Não foi possível localizar este CEP. Você pode preencher o endereço manualmente."
+                            }
+                        }
+                    }
+
+                } else if (
+                    cepDigits.length < 8
+                ) {
+
+                    lastSearchedCep = ""
+                    isSearchingCep = false
+                    cepLookupMessage = null
+                    cepLookupSucceeded = false
+                }
             }
         )
+
+        if (
+            isSearchingCep ||
+            cepLookupMessage != null
+        ) {
+
+            Spacer(
+                modifier =
+                    Modifier.height(7.dp)
+            )
+
+            Text(
+                text =
+                    cepLookupMessage
+                        ?: "Buscando endereço...",
+                color =
+                    if (
+                        cepLookupSucceeded
+                    ) {
+                        GuinchouGreen
+                    } else {
+                        GuinchouGray
+                    },
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+        }
 
         FormSpacer()
 
@@ -1962,6 +2118,115 @@ private fun StatusDivider() {
 
     Spacer(modifier = Modifier.height(12.dp))
 }
+
+private suspend fun fetchAddressByCep(
+    cep: String
+): Result<CepAddressResult> {
+
+    return withContext(
+        Dispatchers.IO
+    ) {
+
+        runCatching {
+
+            val cleanCep =
+                cep
+                    .filter(Char::isDigit)
+                    .take(8)
+
+            require(
+                cleanCep.length == 8
+            ) {
+                "CEP inválido."
+            }
+
+            val url =
+                URL(
+                    "https://viacep.com.br/ws/$cleanCep/json/"
+                )
+
+            val connection =
+                url.openConnection()
+                        as HttpURLConnection
+
+            try {
+
+                connection.requestMethod =
+                    "GET"
+
+                connection.connectTimeout =
+                    6000
+
+                connection.readTimeout =
+                    6000
+
+                connection.setRequestProperty(
+                    "Accept",
+                    "application/json"
+                )
+
+                val responseCode =
+                    connection.responseCode
+
+                if (
+                    responseCode !in 200..299
+                ) {
+                    error(
+                        "Falha ao consultar CEP."
+                    )
+                }
+
+                val responseText =
+                    connection
+                        .inputStream
+                        .bufferedReader()
+                        .use {
+                            it.readText()
+                        }
+
+                val json =
+                    JSONObject(
+                        responseText
+                    )
+
+                if (
+                    json.optBoolean(
+                        "erro",
+                        false
+                    )
+                ) {
+                    error(
+                        "CEP não encontrado."
+                    )
+                }
+
+                CepAddressResult(
+                    street =
+                        json.optString(
+                            "logradouro"
+                        ),
+                    neighborhood =
+                        json.optString(
+                            "bairro"
+                        ),
+                    city =
+                        json.optString(
+                            "localidade"
+                        ),
+                    state =
+                        json.optString(
+                            "uf"
+                        )
+                            .uppercase()
+                )
+            } finally {
+
+                connection.disconnect()
+            }
+        }
+    }
+}
+
 
 private fun formatCpf(
     value: String
