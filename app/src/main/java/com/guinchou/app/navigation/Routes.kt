@@ -17,11 +17,14 @@ object Routes {
     const val LOGIN =
         "login"
 
-    const val CREATE_ACCOUNT = "create_account"
+    const val CREATE_ACCOUNT =
+        "create_account"
 
-    const val FORGOT_PASSWORD = "forgot_password"
+    const val FORGOT_PASSWORD =
+        "forgot_password"
 
-    const val RECOVERY_EMAIL_SENT = "recovery_email_sent"
+    const val RECOVERY_EMAIL_SENT =
+        "recovery_email_sent"
 
     /*
      * =========================================
@@ -32,7 +35,8 @@ object Routes {
     const val HOME =
         "home"
 
-    const val PROFILE = "profile"
+    const val PROFILE =
+        "profile"
 
     const val PICKUP =
         "pickup"
@@ -58,13 +62,11 @@ object Routes {
     const val TRACKING =
         "tracking"
 
-
     /*
      * Atendimento concluído.
      */
     const val COMPLETED =
         "completed"
-
 
     /*
      * =========================================

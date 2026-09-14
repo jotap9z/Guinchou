@@ -17,6 +17,7 @@ import com.guinchou.app.ui.screens.auth.LoginScreen
 import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
+import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
 import com.guinchou.app.ui.screens.request.CompletedScreen
@@ -303,10 +304,9 @@ fun GuinchouNavGraph(
 
                 onIndependentDriverClick = {
 
-                    /*
-                     * Fluxo do motorista parceiro
-                     * será criado posteriormente.
-                     */
+                    navController.navigate(
+                        Routes.DRIVER_REGISTER
+                    )
                 },
 
                 onCompanyClick = {
@@ -320,6 +320,42 @@ fun GuinchouNavGraph(
                 onBackClick = {
 
                     navController.popBackStack()
+                }
+            )
+        }
+
+
+        /*
+         * =========================================
+         * CADASTRO DO MOTORISTA INDEPENDENTE
+         * =========================================
+         */
+
+        composable(
+            route = Routes.DRIVER_REGISTER
+        ) {
+
+            IndependentDriverRegistrationScreen(
+
+                onBackClick = {
+
+                    navController.popBackStack()
+                },
+
+                onRegistrationFinished = {
+
+                    /*
+                     * Front-end:
+                     * após concluir o cadastro, retorna
+                     * para a tela de seleção de parceiro.
+                     *
+                     * Futuramente poderá navegar para
+                     * uma área de acompanhamento.
+                     */
+                    navController.popBackStack(
+                        route = Routes.PARTNER,
+                        inclusive = false
+                    )
                 }
             )
         }
