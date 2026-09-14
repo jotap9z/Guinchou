@@ -19,6 +19,10 @@ object Routes {
 
     const val CREATE_ACCOUNT = "create_account"
 
+    const val FORGOT_PASSWORD = "forgot_password"
+
+    const val RECOVERY_EMAIL_SENT = "recovery_email_sent"
+
     /*
      * =========================================
      * CLIENTE

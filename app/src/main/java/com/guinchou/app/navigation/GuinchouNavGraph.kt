@@ -3,13 +3,18 @@ package com.guinchou.app.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.guinchou.app.model.TowRequestStatus
 import com.guinchou.app.ui.screens.auth.CreateAccountScreen
+import com.guinchou.app.ui.screens.auth.ForgotPasswordScreen
 import com.guinchou.app.ui.screens.auth.LoginScreen
+import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
@@ -31,6 +36,18 @@ fun GuinchouNavGraph(
     towRequestViewModel: TowRequestViewModel,
     authViewModel: AuthViewModel
 ) {
+
+    /*
+     * Guarda temporariamente o e-mail informado
+     * na recuperação de senha.
+     *
+     * Como ainda estamos trabalhando somente
+     * com o Front-end, não precisamos salvar
+     * isso no banco ou no Supabase.
+     */
+    var recoveryEmail by remember {
+        mutableStateOf("")
+    }
 
     NavHost(
         navController = navController,
@@ -80,10 +97,6 @@ fun GuinchouNavGraph(
                 .uiState
                 .collectAsStateWithLifecycle()
 
-            /*
-             * Caso o Supabase confirme
-             * a autenticação, abre a Home.
-             */
             LaunchedEffect(
                 authUiState.isAuthenticated
             ) {
@@ -133,10 +146,6 @@ fun GuinchouNavGraph(
 
                 onCreateAccountClick = {
 
-                    /*
-                     * Abre a nova tela
-                     * de cadastro.
-                     */
                     navController.navigate(
                         Routes.CREATE_ACCOUNT
                     )
@@ -145,9 +154,12 @@ fun GuinchouNavGraph(
                 onForgotPasswordClick = {
 
                     /*
-                     * Recuperação de senha será
-                     * implementada posteriormente.
+                     * Agora abre a tela real
+                     * de recuperação de senha.
                      */
+                    navController.navigate(
+                        Routes.FORGOT_PASSWORD
+                    )
                 },
 
                 onPartnerClick = {
@@ -172,25 +184,131 @@ fun GuinchouNavGraph(
 
             CreateAccountScreen(
 
-                onCreateAccountClick = { _, _, _, _, _ ->
+                onCreateAccountClick = {
+                        _,
+                        _,
+                        _,
+                        _,
+                        _ ->
 
                     /*
-                     * Neste momento estamos
-                     * testando apenas a interface
-                     * e a navegação.
+                     * Por enquanto estamos trabalhando
+                     * somente com o Front-end.
                      *
-                     * No próximo passo estes dados
-                     * serão enviados ao Supabase.
+                     * Depois que todos os campos forem
+                     * validados pela CreateAccountScreen,
+                     * o usuário é enviado para a Home.
+                     *
+                     * Posteriormente esta navegação
+                     * acontecerá apenas depois do
+                     * cadastro real no Supabase.
                      */
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+
+                        popUpTo(
+                            Routes.LOGIN
+                        ) {
+                            inclusive = true
+                        }
+                    }
                 },
 
                 onLoginClick = {
 
-                    /*
-                     * Volta para a tela anterior,
-                     * que neste fluxo é o Login.
-                     */
                     navController.popBackStack()
+                }
+            )
+        }
+
+
+        /*
+         * =========================================
+         * RECUPERAR SENHA
+         * =========================================
+         */
+
+        composable(
+            route = Routes.FORGOT_PASSWORD
+        ) {
+
+            ForgotPasswordScreen(
+
+                onSendRecoveryClick = { email ->
+
+                    /*
+                     * Guarda o e-mail para podermos
+                     * exibi-lo na próxima tela.
+                     */
+                    recoveryEmail =
+                        email.trim()
+
+                    /*
+                     * Por enquanto não existe envio
+                     * de e-mail real.
+                     *
+                     * Apenas simulamos o sucesso
+                     * visual do processo.
+                     */
+                    navController.navigate(
+                        Routes.RECOVERY_EMAIL_SENT
+                    )
+                },
+
+                onBackToLoginClick = {
+
+                    navController.popBackStack()
+                }
+            )
+        }
+
+
+        /*
+         * =========================================
+         * E-MAIL DE RECUPERAÇÃO ENVIADO
+         * =========================================
+         */
+
+        composable(
+            route = Routes.RECOVERY_EMAIL_SENT
+        ) {
+
+            RecoveryEmailSentScreen(
+
+                email =
+                    recoveryEmail,
+
+                onBackToLoginClick = {
+
+                    /*
+                     * Retorna diretamente ao Login
+                     * e remove as telas de recuperação
+                     * da pilha de navegação.
+                     */
+                    navController.navigate(
+                        Routes.LOGIN
+                    ) {
+
+                        popUpTo(
+                            Routes.FORGOT_PASSWORD
+                        ) {
+                            inclusive = true
+                        }
+
+                        launchSingleTop = true
+                    }
+                },
+
+                onResendClick = {
+
+                    /*
+                     * Somente visual nesta etapa.
+                     *
+                     * Quando implementarmos o backend,
+                     * aqui faremos um novo pedido
+                     * de recuperação ao Supabase.
+                     */
                 }
             )
         }
@@ -212,15 +330,15 @@ fun GuinchouNavGraph(
 
                     /*
                      * Cadastro do motorista
-                     * será criado posteriormente.
+                     * será desenvolvido posteriormente.
                      */
                 },
 
                 onCompanyClick = {
 
                     /*
-                     * Cadastro empresarial
-                     * será criado posteriormente.
+                     * Cadastro da empresa
+                     * será desenvolvido posteriormente.
                      */
                 },
 
@@ -257,8 +375,8 @@ fun GuinchouNavGraph(
                 onNotificationClick = {
 
                     /*
-                     * Tela de notificações
-                     * será adicionada posteriormente.
+                     * Tela de notificações será
+                     * criada posteriormente.
                      */
                 },
 
@@ -266,7 +384,7 @@ fun GuinchouNavGraph(
 
                     /*
                      * Tela de perfil será
-                     * adicionada posteriormente.
+                     * criada posteriormente.
                      */
                 }
             )
@@ -484,10 +602,8 @@ fun GuinchouNavGraph(
                     }
 
                     /*
-                     * Distância de teste.
-                     *
-                     * Posteriormente será calculada
-                     * utilizando origem e destino reais.
+                     * Distância temporária
+                     * utilizada apenas no Front.
                      */
                     towRequestViewModel
                         .calculateEstimate(
@@ -624,9 +740,8 @@ fun GuinchouNavGraph(
                 onTowFound = {
 
                     /*
-                     * Dados temporários enquanto
-                     * ainda não temos o aplicativo
-                     * do motorista conectado.
+                     * Dados simulados enquanto ainda
+                     * estamos desenvolvendo o Front.
                      */
                     towRequestViewModel
                         .acceptTowRequest(
@@ -721,15 +836,14 @@ fun GuinchouNavGraph(
                 onCallClick = {
 
                     /*
-                     * Ligação será implementada
-                     * posteriormente.
+                     * Implementado posteriormente.
                      */
                 },
 
                 onMessageClick = {
 
                     /*
-                     * Chat interno será implementado
+                     * Chat será implementado
                      * posteriormente.
                      */
                 },
@@ -737,9 +851,8 @@ fun GuinchouNavGraph(
                 onAdvanceTestClick = {
 
                     /*
-                     * Controle temporário para
-                     * testar os estados da corrida
-                     * sem um motorista real.
+                     * Simulação dos estados do
+                     * atendimento durante o Front.
                      */
                     when (
                         towRequestViewModel
@@ -788,8 +901,7 @@ fun GuinchouNavGraph(
                         else -> {
 
                             /*
-                             * Nenhuma ação
-                             * para outros estados.
+                             * Nenhuma ação.
                              */
                         }
                     }
@@ -870,15 +982,10 @@ fun GuinchouNavGraph(
 
 /*
  * =============================================
- * NAVEGAÇÃO PARA HOME
+ * ABRIR HOME APÓS LOGIN
  * =============================================
- *
- * Remove o Login da pilha.
- *
- * Dessa forma, depois que o usuário entra
- * corretamente, pressionar "voltar" no Android
- * não retorna para a tela de autenticação.
  */
+
 private fun openHome(
     navController: NavHostController
 ) {
