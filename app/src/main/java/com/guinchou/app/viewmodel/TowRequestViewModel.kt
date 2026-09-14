@@ -20,7 +20,7 @@ class TowRequestViewModel : ViewModel() {
      */
 
     var requestStatus by mutableStateOf(
-        TowRequestStatus.CREATED
+        TowRequestStatus.CREATED,
     )
         private set
 
@@ -117,19 +117,19 @@ class TowRequestViewModel : ViewModel() {
      * =========================================
      */
 
-    var distanceKm by mutableStateOf(0.0)
+    var distanceKm by androidx.compose.runtime.mutableDoubleStateOf(0.0)
         private set
 
-    var servicePrice by mutableStateOf(0.0)
+    var servicePrice by androidx.compose.runtime.mutableDoubleStateOf(0.0)
         private set
 
-    var platformFee by mutableStateOf(0.0)
+    var platformFee by androidx.compose.runtime.mutableDoubleStateOf(0.0)
         private set
 
-    var platformFeePercentage by mutableStateOf(0.0)
+    var platformFeePercentage by androidx.compose.runtime.mutableDoubleStateOf(0.0)
         private set
 
-    var partnerAmount by mutableStateOf(0.0)
+    var partnerAmount by androidx.compose.runtime.mutableDoubleStateOf(0.0)
         private set
 
 
@@ -155,7 +155,7 @@ class TowRequestViewModel : ViewModel() {
     var acceptedDriverRating by mutableStateOf(0.0)
         private set
 
-    var estimatedArrivalMinutes by mutableStateOf(0)
+    var estimatedArrivalMinutes by androidx.compose.runtime.mutableIntStateOf(0)
         private set
 
 
@@ -166,7 +166,7 @@ class TowRequestViewModel : ViewModel() {
      */
 
     fun updateRequestStatus(
-        status: TowRequestStatus
+        status: TowRequestStatus,
     ) {
 
         requestStatus = status
@@ -180,7 +180,7 @@ class TowRequestViewModel : ViewModel() {
      */
 
     fun updatePickupAddress(
-        address: String
+        address: String,
     ) {
 
         pickupAddress = address
@@ -345,8 +345,8 @@ class TowRequestViewModel : ViewModel() {
     fun hasRequiredAccidentPhotos(): Boolean {
 
         return (
-                vehiclePhotoOneUri != null &&
-                        vehiclePhotoTwoUri != null
+                (vehiclePhotoOneUri != null) &&
+                        (vehiclePhotoTwoUri != null)
                 )
     }
 

@@ -1,10 +1,14 @@
 package com.guinchou.app.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.guinchou.app.model.TowRequestStatus
+import com.guinchou.app.ui.screens.auth.CreateAccountScreen
 import com.guinchou.app.ui.screens.auth.LoginScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
@@ -18,12 +22,14 @@ import com.guinchou.app.ui.screens.request.SearchingScreen
 import com.guinchou.app.ui.screens.request.TrackingScreen
 import com.guinchou.app.ui.screens.request.VehicleScreen
 import com.guinchou.app.ui.screens.splash.SplashScreen
+import com.guinchou.app.viewmodel.AuthViewModel
 import com.guinchou.app.viewmodel.TowRequestViewModel
 
 @Composable
 fun GuinchouNavGraph(
     navController: NavHostController,
-    towRequestViewModel: TowRequestViewModel
+    towRequestViewModel: TowRequestViewModel,
+    authViewModel: AuthViewModel
 ) {
 
     NavHost(
@@ -69,28 +75,79 @@ fun GuinchouNavGraph(
             route = Routes.LOGIN
         ) {
 
-            LoginScreen(
+            val authUiState by
+            authViewModel
+                .uiState
+                .collectAsStateWithLifecycle()
 
-                onLoginClick = { _, _ ->
+            /*
+             * Caso o Supabase confirme
+             * a autenticação, abre a Home.
+             */
+            LaunchedEffect(
+                authUiState.isAuthenticated
+            ) {
+
+                if (
+                    authUiState.isAuthenticated
+                ) {
 
                     openHome(
                         navController
                     )
+                }
+            }
+
+            LoginScreen(
+
+                isLoading =
+                    authUiState.isLoading,
+
+                externalErrorMessage =
+                    authUiState.errorMessage,
+
+                onLoginClick = {
+                        identifier,
+                        password ->
+
+                    if (
+                        identifier.contains("@")
+                    ) {
+
+                        authViewModel.signIn(
+                            email =
+                                identifier.trim(),
+                            password =
+                                password
+                        )
+                    }
                 },
 
                 onGoogleClick = {
 
-                    openHome(
-                        navController
-                    )
+                    /*
+                     * Google Auth será
+                     * implementado posteriormente.
+                     */
                 },
 
                 onCreateAccountClick = {
 
+                    /*
+                     * Abre a nova tela
+                     * de cadastro.
+                     */
+                    navController.navigate(
+                        Routes.CREATE_ACCOUNT
+                    )
                 },
 
                 onForgotPasswordClick = {
 
+                    /*
+                     * Recuperação de senha será
+                     * implementada posteriormente.
+                     */
                 },
 
                 onPartnerClick = {
@@ -98,6 +155,42 @@ fun GuinchouNavGraph(
                     navController.navigate(
                         Routes.PARTNER
                     )
+                }
+            )
+        }
+
+
+        /*
+         * =========================================
+         * CRIAR CONTA
+         * =========================================
+         */
+
+        composable(
+            route = Routes.CREATE_ACCOUNT
+        ) {
+
+            CreateAccountScreen(
+
+                onCreateAccountClick = { _, _, _, _, _ ->
+
+                    /*
+                     * Neste momento estamos
+                     * testando apenas a interface
+                     * e a navegação.
+                     *
+                     * No próximo passo estes dados
+                     * serão enviados ao Supabase.
+                     */
+                },
+
+                onLoginClick = {
+
+                    /*
+                     * Volta para a tela anterior,
+                     * que neste fluxo é o Login.
+                     */
+                    navController.popBackStack()
                 }
             )
         }
@@ -117,10 +210,18 @@ fun GuinchouNavGraph(
 
                 onIndependentDriverClick = {
 
+                    /*
+                     * Cadastro do motorista
+                     * será criado posteriormente.
+                     */
                 },
 
                 onCompanyClick = {
 
+                    /*
+                     * Cadastro empresarial
+                     * será criado posteriormente.
+                     */
                 },
 
                 onBackClick = {
@@ -145,7 +246,8 @@ fun GuinchouNavGraph(
 
                 onRequestTowClick = {
 
-                    towRequestViewModel.clearRequest()
+                    towRequestViewModel
+                        .clearRequest()
 
                     navController.navigate(
                         Routes.PICKUP
@@ -154,10 +256,18 @@ fun GuinchouNavGraph(
 
                 onNotificationClick = {
 
+                    /*
+                     * Tela de notificações
+                     * será adicionada posteriormente.
+                     */
                 },
 
                 onProfileClick = {
 
+                    /*
+                     * Tela de perfil será
+                     * adicionada posteriormente.
+                     */
                 }
             )
         }
@@ -165,7 +275,7 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * PICKUP
+         * LOCAL DO VEÍCULO
          * =========================================
          */
 
@@ -373,6 +483,12 @@ fun GuinchouNavGraph(
                         return@ProblemScreen
                     }
 
+                    /*
+                     * Distância de teste.
+                     *
+                     * Posteriormente será calculada
+                     * utilizando origem e destino reais.
+                     */
                     towRequestViewModel
                         .calculateEstimate(
                             18.0
@@ -477,7 +593,7 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * BUSCA
+         * PROCURANDO GUINCHO
          * =========================================
          */
 
@@ -507,6 +623,11 @@ fun GuinchouNavGraph(
 
                 onTowFound = {
 
+                    /*
+                     * Dados temporários enquanto
+                     * ainda não temos o aplicativo
+                     * do motorista conectado.
+                     */
                     towRequestViewModel
                         .acceptTowRequest(
                             driverName =
@@ -578,32 +699,51 @@ fun GuinchouNavGraph(
                     towRequestViewModel.acceptedDriverName,
 
                 towTruckDescription =
-                    towRequestViewModel.acceptedTowTruckDescription,
+                    towRequestViewModel
+                        .acceptedTowTruckDescription,
 
                 towTruckPlate =
-                    towRequestViewModel.acceptedTowTruckPlate,
+                    towRequestViewModel
+                        .acceptedTowTruckPlate,
 
                 estimatedArrivalMinutes =
-                    towRequestViewModel.estimatedArrivalMinutes,
+                    towRequestViewModel
+                        .estimatedArrivalMinutes,
 
                 driverRating =
-                    towRequestViewModel.acceptedDriverRating,
+                    towRequestViewModel
+                        .acceptedDriverRating,
 
                 requestStatus =
-                    towRequestViewModel.requestStatus,
+                    towRequestViewModel
+                        .requestStatus,
 
                 onCallClick = {
 
+                    /*
+                     * Ligação será implementada
+                     * posteriormente.
+                     */
                 },
 
                 onMessageClick = {
 
+                    /*
+                     * Chat interno será implementado
+                     * posteriormente.
+                     */
                 },
 
                 onAdvanceTestClick = {
 
+                    /*
+                     * Controle temporário para
+                     * testar os estados da corrida
+                     * sem um motorista real.
+                     */
                     when (
-                        towRequestViewModel.requestStatus
+                        towRequestViewModel
+                            .requestStatus
                     ) {
 
                         TowRequestStatus
@@ -647,6 +787,10 @@ fun GuinchouNavGraph(
 
                         else -> {
 
+                            /*
+                             * Nenhuma ação
+                             * para outros estados.
+                             */
                         }
                     }
                 },
@@ -676,7 +820,7 @@ fun GuinchouNavGraph(
 
         /*
          * =========================================
-         * CONCLUÍDO
+         * SERVIÇO CONCLUÍDO
          * =========================================
          */
 
@@ -687,16 +831,20 @@ fun GuinchouNavGraph(
             CompletedScreen(
 
                 driverName =
-                    towRequestViewModel.acceptedDriverName,
+                    towRequestViewModel
+                        .acceptedDriverName,
 
                 pickupAddress =
-                    towRequestViewModel.pickupAddress,
+                    towRequestViewModel
+                        .pickupAddress,
 
                 destinationAddress =
-                    towRequestViewModel.destinationAddress,
+                    towRequestViewModel
+                        .destinationAddress,
 
                 servicePrice =
-                    towRequestViewModel.servicePrice,
+                    towRequestViewModel
+                        .servicePrice,
 
                 onFinishClick = { _ ->
 
@@ -720,6 +868,17 @@ fun GuinchouNavGraph(
 }
 
 
+/*
+ * =============================================
+ * NAVEGAÇÃO PARA HOME
+ * =============================================
+ *
+ * Remove o Login da pilha.
+ *
+ * Dessa forma, depois que o usuário entra
+ * corretamente, pressionar "voltar" no Android
+ * não retorna para a tela de autenticação.
+ */
 private fun openHome(
     navController: NavHostController
 ) {

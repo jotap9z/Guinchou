@@ -32,7 +32,7 @@ object PricingCalculator {
      * com base na distância da rota.
      */
     fun calculateServicePrice(
-        distanceKm: Double
+        distanceKm: Double,
     ): Double {
 
         /*
@@ -98,7 +98,7 @@ object PricingCalculator {
                  */
                 val extraBlocks =
                     ceil(
-                        extraDistance / 5.0
+                        extraDistance / 5.0,
                     )
 
                 /*
@@ -125,7 +125,7 @@ object PricingCalculator {
      * 6%
      */
     fun calculatePlatformFeePercentage(
-        servicePrice: Double
+        servicePrice: Double,
     ): Double {
 
         return if (
@@ -146,7 +146,7 @@ object PricingCalculator {
      * ao administrador do aplicativo.
      */
     fun calculatePlatformFee(
-        servicePrice: Double
+        servicePrice: Double,
     ): Double {
 
         if (servicePrice <= 0.0) {
@@ -155,7 +155,7 @@ object PricingCalculator {
 
         val percentage =
             calculatePlatformFeePercentage(
-                servicePrice
+                servicePrice,
             )
 
         return servicePrice *
@@ -168,12 +168,12 @@ object PricingCalculator {
      * ao motorista ou empresa.
      */
     fun calculatePartnerAmount(
-        servicePrice: Double
+        servicePrice: Double,
     ): Double {
 
         val platformFee =
             calculatePlatformFee(
-                servicePrice
+                servicePrice,
             )
 
         return servicePrice -

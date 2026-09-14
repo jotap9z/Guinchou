@@ -17,6 +17,7 @@ object Routes {
     const val LOGIN =
         "login"
 
+    const val CREATE_ACCOUNT = "create_account"
 
     /*
      * =========================================

@@ -68,7 +68,7 @@ fun LoginScreen(
 
     onLoginClick: (
         identifier: String,
-        password: String
+        password: String,
     ) -> Unit = { _, _ -> },
 
     onGoogleClick: () -> Unit = {},
@@ -77,7 +77,11 @@ fun LoginScreen(
 
     onForgotPasswordClick: () -> Unit = {},
 
-    onPartnerClick: () -> Unit = {}
+    onPartnerClick: () -> Unit = {},
+
+    isLoading: Boolean = false,
+
+    externalErrorMessage: String? = null,
 ) {
 
     /*
@@ -98,7 +102,7 @@ fun LoginScreen(
      * Controla visualização da senha.
      */
     var passwordVisible by remember {
-        mutableStateOf(false)
+        mutableStateOf(value = false)
     }
 
     /*
@@ -134,7 +138,7 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                GuinchouBackground
+                GuinchouBackground,
             )
 
             /*
@@ -146,7 +150,7 @@ fun LoginScreen(
             .clickable(
                 interactionSource =
                     backgroundInteractionSource,
-                indication = null
+                indication = null,
             ) {
 
                 focusManager.clearFocus()
@@ -159,19 +163,19 @@ fun LoginScreen(
              * menores quando o teclado estiver aberto.
              */
             .verticalScroll(
-                rememberScrollState()
+                rememberScrollState(),
             )
 
             .padding(
                 horizontal = 24.dp,
-                vertical = 28.dp
+                vertical = 28.dp,
             ),
 
         horizontalAlignment =
             Alignment.CenterHorizontally,
 
         verticalArrangement =
-            Arrangement.Center
+            Arrangement.Center,
     ) {
 
         /*
@@ -184,31 +188,31 @@ fun LoginScreen(
             text = "G",
             color = GuinchouGreen,
             fontSize = 52.sp,
-            fontWeight = FontWeight.Black
+            fontWeight = FontWeight.Black,
         )
 
         Text(
             text = "GUINCHOU",
             color = GuinchouWhite,
             fontSize = 28.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         Spacer(
             modifier =
-                Modifier.height(30.dp)
+                Modifier.height(30.dp),
         )
 
         Text(
             text = "Bem-vindo de volta",
             color = GuinchouWhite,
             fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
         )
 
         Spacer(
             modifier =
-                Modifier.height(6.dp)
+                Modifier.height(6.dp),
         )
 
         Text(
@@ -216,7 +220,7 @@ fun LoginScreen(
                 "Entre para solicitar seu guincho.",
             color = GuinchouGray,
             fontSize = 14.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(
@@ -426,7 +430,9 @@ fun LoginScreen(
          * ===================================
          */
 
-        if (errorMessage != null) {
+        val displayError = externalErrorMessage ?: errorMessage
+
+        if (displayError != null) {
 
             Spacer(
                 modifier =
@@ -436,7 +442,7 @@ fun LoginScreen(
             Text(
 
                 text =
-                    errorMessage!!,
+                    displayError,
 
                 color =
                     MaterialTheme
@@ -573,6 +579,8 @@ fun LoginScreen(
                 )
             },
 
+            enabled = !isLoading,
+
             modifier =
                 Modifier
                     .fillMaxWidth()
@@ -596,7 +604,7 @@ fun LoginScreen(
         ) {
 
             Text(
-                text = "Entrar",
+                text = if (isLoading) "Carregando..." else "Entrar",
                 fontWeight =
                     FontWeight.Bold,
                 fontSize = 15.sp
