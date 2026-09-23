@@ -1,82 +1,66 @@
 package com.guinchou.app.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.guinchou.app.data.remote.SupabaseProvider
+import com.guinchou.app.data.repository.AuthRepository
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-/**
- * Controla o estado de autenticação
- * do usuário no Guinchou.
- */
 class AuthViewModel : ViewModel() {
+    private val repository = AuthRepository()
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState = _uiState.asStateFlow()
 
-    private val _uiState =
-        MutableStateFlow(
-            AuthUiState(),
-        )
-
-    val uiState: StateFlow<AuthUiState> =
-        _uiState.asStateFlow()
-
-    /**
-     * Realiza a autenticação via Supabase.
-     */
-    fun signIn(
-        email: String,
-        password: String,
-    ) {
-
-        /*
-         * Sinaliza que está carregando.
-         */
-        _uiState.value =
-            _uiState.value.copy(
-                isLoading = true,
-                errorMessage = null
-            )
-
-        /*
-         * Simulação temporária até
-         * a integração total com o Supabase.
-         */
-        if (
-            (email == "admin@guinchou.com") &&
-            (password == "123456")
-        ) {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = false,
-                    isAuthenticated = true
-                )
-
-        } else {
-
-            _uiState.value =
-                _uiState.value.copy(
-                    isLoading = false,
-                    errorMessage = "E-mail ou senha incorretos."
-                )
+    init {
+        viewModelScope.launch {
+            SupabaseProvider.client.auth.sessionStatus.collect { status ->
+                when (status) {
+                    is SessionStatus.Authenticated -> _uiState.value =
+                        _uiState.value.copy(isAuthenticated = true, isLoading = false)
+                    is SessionStatus.NotAuthenticated -> _uiState.value =
+                        _uiState.value.copy(isAuthenticated = false, isLoading = false)
+                    is SessionStatus.RefreshFailure -> _uiState.value =
+                        _uiState.value.copy(isAuthenticated = false, isLoading = false,
+                            errorMessage = "Sessão expirada. Faça login novamente.")
+                    SessionStatus.Initializing -> Unit
+                }
+            }
         }
     }
 
-    /**
-     * Realiza o encerramento da sessão.
-     */
-    fun signOut() {
-        _uiState.value =
-            _uiState.value.copy(
-                isAuthenticated = false,
-                errorMessage = null
-            )
+    fun signIn(email: String, password: String) {
+        if (_uiState.value.isLoading) return
+        _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+        viewModelScope.launch {
+            try {
+                repository.signIn(email, password)
+                _uiState.value = _uiState.value.copy(isLoading = false, isAuthenticated = true)
+            } catch (error: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false,
+                    isAuthenticated = false,
+                    errorMessage = "Não foi possível entrar. Confira e-mail, senha e confirmação da conta.")
+            }
+        }
+    }
+
+    fun signOut(onFinished: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.signOut()
+                _uiState.value = AuthUiState()
+                onFinished()
+            } catch (error: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Não foi possível encerrar a sessão. Tente novamente.")
+            }
+        }
     }
 }
 
-/**
- * Representa o estado visual
- * do fluxo de login.
- */
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
