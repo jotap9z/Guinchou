@@ -18,6 +18,7 @@ import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
+import com.guinchou.app.ui.screens.partner.PartnerHomeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
 import com.guinchou.app.ui.screens.request.CompletedScreen
@@ -343,19 +344,48 @@ fun GuinchouNavGraph(
                 },
 
                 onRegistrationFinished = {
+                    navController.navigate(Routes.PARTNER_HOME) {
+                        popUpTo(Routes.PARTNER) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }            )
+        }
 
-                    /*
-                     * Front-end:
-                     * após concluir o cadastro, retorna
-                     * para a tela de seleção de parceiro.
-                     *
-                     * Futuramente poderá navegar para
-                     * uma área de acompanhamento.
-                     */
-                    navController.popBackStack(
-                        route = Routes.PARTNER,
-                        inclusive = false
-                    )
+
+        /*
+         * =========================================
+         * HOME DO MOTORISTA PARCEIRO
+         * =========================================
+         */
+
+        composable(
+            route = Routes.PARTNER_HOME
+        ) {
+            PartnerHomeScreen(
+                driverName = "João",
+                todayTrips = 3,
+                todayEarnings = 382.50,
+                driverRating = 4.9,
+                documentWarningCount = 1,
+                onNotificationsClick = {
+                    // Tela será conectada posteriormente.
+                },
+                onHistoryClick = {
+                    // Histórico será criado posteriormente.
+                },
+                onEarningsClick = {
+                    // Ganhos serão criados posteriormente.
+                },
+                onDocumentsClick = {
+                    // Documentos serão conectados posteriormente.
+                },
+                onProfileClick = {
+                    // Perfil do parceiro será criado posteriormente.
+                },
+                onTestRequestClick = {
+                    // Próxima etapa: tela de novo chamado.
                 }
             )
         }
