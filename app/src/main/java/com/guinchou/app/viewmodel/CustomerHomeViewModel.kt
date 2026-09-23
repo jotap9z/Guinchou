@@ -30,7 +30,7 @@ class CustomerHomeViewModel : ViewModel() {
             } catch (error: Exception) {
                 CustomerHomeUiState(
                     loading = false,
-                    error = error.message ?: "Falha ao carregar os dados do cliente.",
+                    error = "Não foi possível carregar seus dados. Tente novamente.",
                 )
             }
         }
