@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -30,6 +31,7 @@ import com.guinchou.app.ui.screens.request.TrackingScreen
 import com.guinchou.app.ui.screens.request.VehicleScreen
 import com.guinchou.app.ui.screens.splash.SplashScreen
 import com.guinchou.app.viewmodel.AuthViewModel
+import com.guinchou.app.viewmodel.CustomerHomeViewModel
 import com.guinchou.app.viewmodel.TowRequestViewModel
 
 
@@ -39,6 +41,7 @@ fun GuinchouNavGraph(
     towRequestViewModel: TowRequestViewModel,
     authViewModel: AuthViewModel
 ) {
+    val customerHomeViewModel: CustomerHomeViewModel = viewModel()
 
     /*
      * E-mail utilizado temporariamente
@@ -370,10 +373,22 @@ fun GuinchouNavGraph(
         composable(
             route = Routes.HOME
         ) {
+            val homeState by customerHomeViewModel.uiState.collectAsStateWithLifecycle()
+            LaunchedEffect(authViewModel.uiState.value.isAuthenticated) {
+                if (authViewModel.uiState.value.isAuthenticated) {
+                    customerHomeViewModel.load()
+                } else {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                }
+            }
 
             HomeScreen(
+                homeState = homeState,
 
                 onRequestTowClick = {
+                    if (!homeState.canRequestTow) return@HomeScreen
 
                     towRequestViewModel
                         .clearRequest()
@@ -416,14 +431,15 @@ fun GuinchouNavGraph(
         composable(
             route = Routes.PROFILE
         ) {
+            val homeState by customerHomeViewModel.uiState.collectAsStateWithLifecycle()
 
             ProfileScreen(
 
                 userName =
-                    "João da Silva",
+                    homeState.home?.name ?: "Cliente",
 
                 userEmail =
-                    "joao@email.com",
+                    homeState.home?.email ?: "",
 
                 onBackClick = {
 
@@ -432,19 +448,12 @@ fun GuinchouNavGraph(
 
                 onLogoutClick = {
 
-                    authViewModel.signOut()
-
-                    navController.navigate(
-                        Routes.LOGIN
-                    ) {
-
-                        popUpTo(
-                            Routes.HOME
-                        ) {
-                            inclusive = true
+                    authViewModel.signOut {
+                        customerHomeViewModel.clear()
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                            launchSingleTop = true
                         }
-
-                        launchSingleTop = true
                     }
                 }
             )
