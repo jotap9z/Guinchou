@@ -39,6 +39,7 @@ import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import com.guinchou.app.viewmodel.CustomerHomeUiState
 
 /**
  * Home principal do cliente.
@@ -54,6 +55,7 @@ import com.guinchou.app.ui.theme.GuinchouWhite
  */
 @Composable
 fun HomeScreen(
+    homeState: CustomerHomeUiState,
 
     // Inicia solicitação de guincho.
     onRequestTowClick: () -> Unit,
@@ -185,6 +187,16 @@ fun HomeScreen(
                                 text = "Seu socorro chegou.",
                                 color = GuinchouGray,
                                 fontSize = 13.sp
+                            )
+
+                            Text(
+                                text = when {
+                                    homeState.loading -> "Carregando seus dados..."
+                                    homeState.error != null -> homeState.error
+                                    else -> "Olá, ${homeState.home?.name ?: "Cliente"} · ${homeState.home?.completedServices ?: 0} serviço(s) concluído(s)"
+                                },
+                                color = GuinchouGray,
+                                fontSize = 12.sp
                             )
                         }
 
@@ -499,10 +511,21 @@ fun HomeScreen(
                          * BOTÃO PRINCIPAL
                          * ===================================
                          */
+                        if (homeState.home?.activeRequestId != null) {
+                            Text(
+                                text = "Atendimento em andamento: ${homeState.home.activeRequestStatus}",
+                                color = GuinchouGreen,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(bottom = 10.dp)
+                            )
+                        }
+
                         Button(
 
                             onClick =
                                 onRequestTowClick,
+
+                            enabled = homeState.canRequestTow,
 
                             modifier = Modifier
                                 .fillMaxWidth()
