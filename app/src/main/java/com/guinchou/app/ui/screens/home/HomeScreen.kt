@@ -1,5 +1,9 @@
 package com.guinchou.app.ui.screens.home
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -26,13 +29,27 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.google.android.gms.location.LocationServices
 import com.guinchou.app.ui.theme.GuinchouBackground
 import com.guinchou.app.ui.theme.GuinchouBorder
 import com.guinchou.app.ui.theme.GuinchouGray
@@ -40,6 +57,14 @@ import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
 import com.guinchou.app.viewmodel.CustomerHomeUiState
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Point
 
 @Composable
 fun HomeScreen(
@@ -53,11 +78,15 @@ fun HomeScreen(
             .fillMaxSize()
             .background(GuinchouBackground)
     ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize()
+        ) {
             val compactHeight = maxHeight < 700.dp
             val mapHeight = if (compactHeight) 200.dp else 260.dp
 
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -74,30 +103,41 @@ fun HomeScreen(
                             ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
                                 text = "GUINCHOU",
                                 color = GuinchouWhite,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(2.dp))
+
+                            Spacer(
+                                modifier = Modifier.height(2.dp)
+                            )
+
                             Text(
                                 text = "Seu socorro chegou.",
                                 color = GuinchouGray,
                                 fontSize = 13.sp
                             )
+
+                            val greeting = when {
+                                homeState.loading ->
+                                    "Carregando seus dados..."
+
+                                homeState.error != null ->
+                                    homeState.error
+
+                                else ->
+                                    "Olá, ${homeState.home?.name ?: "Cliente"} · " +
+                                            "${homeState.home?.completedServices ?: 0} " +
+                                            "serviço(s) concluído(s)"
+                            }
+
                             Text(
-                                text = when {
-                                    homeState.loading ->
-                                        "Carregando seus dados..."
-                                    homeState.error != null ->
-                                        homeState.error
-                                    else ->
-                                        "Olá, ${homeState.home?.name ?: "Cliente"} · " +
-                                                "${homeState.home?.completedServices ?: 0} " +
-                                                "serviço(s) concluído(s)"
-                                },
+                                text = greeting,
                                 color = GuinchouGray,
                                 fontSize = 12.sp
                             )
@@ -111,7 +151,9 @@ fun HomeScreen(
                                     color = GuinchouBorder,
                                     shape = CircleShape
                                 )
-                                .clickable { onNotificationClick() },
+                                .clickable(
+                                    onClick = onNotificationClick
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -126,49 +168,18 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(mapHeight)
-                            .heightIn(
-                                min = 180.dp,
-                                max = 300.dp
-                            )
                             .padding(horizontal = 16.dp)
-                            .background(
-                                color = GuinchouSurface,
-                                shape = RoundedCornerShape(20.dp)
-                            )
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(GuinchouSurface)
                             .border(
                                 width = 1.dp,
                                 color = GuinchouBorder,
                                 shape = RoundedCornerShape(20.dp)
-                            ),
-                        contentAlignment = Alignment.Center
+                            )
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .background(
-                                        color = GuinchouGreen,
-                                        shape = CircleShape
-                                    )
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = "Mapa",
-                                color = GuinchouWhite,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Sua localização aparecerá aqui",
-                                color = GuinchouGray,
-                                fontSize = 13.sp,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 16.dp)
-                            )
-                        }
+                        CustomerMap(
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
 
                     Spacer(
@@ -195,31 +206,32 @@ fun HomeScreen(
                             )
                     ) {
                         Text(
-                            text = "Onde está o veículo?",
+                            text = "Precisa de um guincho?",
                             color = GuinchouWhite,
-                            fontSize = 21.sp,
+                            fontSize = 19.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Informe o local exato para encontrarmos " +
-                                    "um guincho próximo.",
-                            color = GuinchouGray,
-                            fontSize = 14.sp
+
+                        Spacer(
+                            modifier = Modifier.height(6.dp)
                         )
-                        Spacer(modifier = Modifier.height(18.dp))
+
+                        Text(
+                            text = "Solicite atendimento para o seu veículo.",
+                            color = GuinchouGray,
+                            fontSize = 13.sp
+                        )
+
+                        Spacer(
+                            modifier = Modifier.height(18.dp)
+                        )
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(
                                     color = GuinchouBackground,
-                                    shape = RoundedCornerShape(14.dp)
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = GuinchouBorder,
-                                    shape = RoundedCornerShape(14.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 )
                                 .padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -232,32 +244,46 @@ fun HomeScreen(
                                         shape = CircleShape
                                     )
                             )
-                            Spacer(modifier = Modifier.size(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+
+                            Spacer(
+                                modifier = Modifier.size(12.dp)
+                            )
+
+                            Column {
                                 Text(
                                     text = "Localização atual",
                                     color = GuinchouWhite,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
-                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Spacer(
+                                    modifier = Modifier.height(2.dp)
+                                )
+
                                 Text(
-                                    text = "Toque para definir o endereço",
+                                    text = "Confira sua posição no mapa acima",
                                     color = GuinchouGray,
                                     fontSize = 12.sp
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(
+                            modifier = Modifier.height(18.dp)
+                        )
 
                         if (homeState.home?.activeRequestId != null) {
+                            val status = homeState.home.activeRequestStatus
+                                ?: "Em aberto"
+
                             Text(
-                                text = "Atendimento em andamento: " +
-                                        "${homeState.home.activeRequestStatus}",
+                                text = "Atendimento em andamento: $status",
                                 color = GuinchouGreen,
                                 fontSize = 13.sp,
-                                modifier = Modifier.padding(bottom = 10.dp)
+                                modifier = Modifier.padding(
+                                    bottom = 10.dp
+                                )
                             )
                         }
 
@@ -281,10 +307,14 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
+                    )
                 }
 
-                HorizontalDivider(color = GuinchouBorder)
+                HorizontalDivider(
+                    color = GuinchouBorder
+                )
 
                 Row(
                     modifier = Modifier
@@ -302,8 +332,15 @@ fun HomeScreen(
                         text = "Início",
                         selected = true
                     )
-                    BottomItem(text = "Chamados")
-                    BottomItem(text = "Pagamentos")
+
+                    BottomItem(
+                        text = "Chamados"
+                    )
+
+                    BottomItem(
+                        text = "Pagamentos"
+                    )
+
                     BottomItem(
                         text = "Perfil",
                         onClick = onProfileClick
@@ -315,6 +352,270 @@ fun HomeScreen(
 }
 
 @Composable
+private fun CustomerMap(
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var location by remember {
+        mutableStateOf<LatLng?>(null)
+    }
+
+    var locationAllowed by remember {
+        mutableStateOf(false)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        locationAllowed =
+            permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                    permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+    }
+
+    LaunchedEffect(Unit) {
+        val fineAllowed = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        val coarseAllowed = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (fineAllowed || coarseAllowed) {
+            locationAllowed = true
+        } else {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(locationAllowed) {
+        if (locationAllowed) {
+            try {
+                LocationServices
+                    .getFusedLocationProviderClient(context)
+                    .lastLocation
+                    .addOnSuccessListener { lastLocation ->
+                        if (lastLocation != null) {
+                            location = LatLng(
+                                lastLocation.latitude,
+                                lastLocation.longitude
+                            )
+                        }
+                    }
+            } catch (_: SecurityException) {
+                locationAllowed = false
+            }
+        }
+    }
+
+    val mapView = remember(context) {
+        MapLibre.getInstance(context)
+
+        MapView(context).apply {
+            onCreate(null)
+
+            getMapAsync { map ->
+                map.setStyle(
+                    "https://tiles.openfreemap.org/styles/liberty"
+                )
+
+                // Posição inicial enquanto o GPS não fornece dados.
+                map.cameraPosition = CameraPosition.Builder()
+                    .target(LatLng(-15.7801, -47.9292))
+                    .zoom(3.0)
+                    .build()
+            }
+        }
+    }
+
+    DisposableEffect(mapView, lifecycleOwner) {
+        val lifecycle = lifecycleOwner.lifecycle
+        var destroyed = false
+
+        if (
+            lifecycle.currentState.isAtLeast(
+                Lifecycle.State.STARTED
+            )
+        ) {
+            mapView.onStart()
+        }
+
+        if (
+            lifecycle.currentState.isAtLeast(
+                Lifecycle.State.RESUMED
+            )
+        ) {
+            mapView.onResume()
+        }
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START ->
+                    mapView.onStart()
+
+                Lifecycle.Event.ON_RESUME ->
+                    mapView.onResume()
+
+                Lifecycle.Event.ON_PAUSE ->
+                    mapView.onPause()
+
+                Lifecycle.Event.ON_STOP ->
+                    mapView.onStop()
+
+                Lifecycle.Event.ON_DESTROY -> {
+                    mapView.onDestroy()
+                    destroyed = true
+                }
+
+                else -> Unit
+            }
+        }
+
+        lifecycle.addObserver(observer)
+
+        onDispose {
+            lifecycle.removeObserver(observer)
+
+            if (!destroyed) {
+                if (
+                    lifecycle.currentState.isAtLeast(
+                        Lifecycle.State.RESUMED
+                    )
+                ) {
+                    mapView.onPause()
+                }
+
+                if (
+                    lifecycle.currentState.isAtLeast(
+                        Lifecycle.State.STARTED
+                    )
+                ) {
+                    mapView.onStop()
+                }
+
+                mapView.onDestroy()
+            }
+        }
+    }
+
+    LaunchedEffect(mapView, location) {
+        val currentLocation =
+            location ?: return@LaunchedEffect
+
+        mapView.getMapAsync { map ->
+            map.getStyle { style ->
+                val point = Point.fromLngLat(
+                    currentLocation.longitude,
+                    currentLocation.latitude
+                )
+
+                val sourceId =
+                    "customer-location-source"
+
+                val layerId =
+                    "customer-location-layer"
+
+                val existingSource =
+                    style.getSource(sourceId) as? GeoJsonSource
+
+                if (existingSource == null) {
+                    style.addSource(
+                        GeoJsonSource(
+                            sourceId,
+                            point
+                        )
+                    )
+
+                    style.addLayer(
+                        CircleLayer(
+                            layerId,
+                            sourceId
+                        ).withProperties(
+                            PropertyFactory.circleColor(
+                                android.graphics.Color.rgb(
+                                    28,
+                                    180,
+                                    95
+                                )
+                            ),
+                            PropertyFactory.circleRadius(9f),
+                            PropertyFactory.circleStrokeColor(
+                                android.graphics.Color.WHITE
+                            ),
+                            PropertyFactory.circleStrokeWidth(3f)
+                        )
+                    )
+                } else {
+                    existingSource.setGeoJson(point)
+                }
+
+                map.cameraPosition =
+                    CameraPosition.Builder()
+                        .target(currentLocation)
+                        .zoom(15.0)
+                        .build()
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+    ) {
+        AndroidView(
+            factory = { mapView },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        if (!locationAllowed || location == null) {
+            Text(
+                text = if (!locationAllowed) {
+                    "Permita o acesso à localização para ver sua posição"
+                } else {
+                    "Aguardando localização do aparelho"
+                },
+                color = GuinchouWhite,
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(12.dp)
+                    .background(
+                        GuinchouBackground,
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp)
+            )
+        }
+
+        Text(
+            text = "© OpenFreeMap · © OpenStreetMap",
+            color = Color.White,
+            fontSize = 10.sp,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(8.dp)
+                .background(
+                    GuinchouBackground,
+                    RoundedCornerShape(6.dp)
+                )
+                .padding(
+                    horizontal = 6.dp,
+                    vertical = 3.dp
+                )
+        )
+    }
+}
+
+@Composable
 private fun BottomItem(
     text: String,
     selected: Boolean = false,
@@ -322,7 +623,7 @@ private fun BottomItem(
 ) {
     Column(
         modifier = Modifier
-            .clickable { onClick() }
+            .clickable(onClick = onClick)
             .padding(
                 horizontal = 10.dp,
                 vertical = 6.dp
@@ -341,10 +642,18 @@ private fun BottomItem(
                     shape = CircleShape
                 )
         )
-        Spacer(modifier = Modifier.height(4.dp))
+
+        Spacer(
+            modifier = Modifier.height(4.dp)
+        )
+
         Text(
             text = text,
-            color = if (selected) GuinchouGreen else GuinchouGray,
+            color = if (selected) {
+                GuinchouGreen
+            } else {
+                GuinchouGray
+            },
             fontSize = 12.sp,
             textAlign = TextAlign.Center,
             maxLines = 1
