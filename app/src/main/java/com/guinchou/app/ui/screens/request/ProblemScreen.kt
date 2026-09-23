@@ -386,30 +386,6 @@ fun ProblemScreen(
                     )
                 }
 
-                Spacer(
-                    modifier = Modifier.height(18.dp)
-                )
-
-                OutlinedTextField(
-                    value = description,
-                    onValueChange = {
-                        description = it
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = {
-                        Text(
-                            text = "Observações adicionais"
-                        )
-                    },
-                    placeholder = {
-                        Text(
-                            text = "Ex.: veículo em local de difícil acesso, roda travada, vazamento etc."
-                        )
-                    },
-                    minLines = 3,
-                    maxLines = 6,
-                    colors = problemTextFieldColors()
-                )
             }
 
             if (problemType == "ACCIDENT") {
@@ -509,6 +485,35 @@ fun ProblemScreen(
                         } else {
                             FontWeight.Normal
                         }
+                )
+            }
+
+            // Observações ficam ao final, depois das fotos quando houver acidente.
+            if (problemType.isNotBlank()) {
+
+                Spacer(
+                    modifier = Modifier.height(26.dp)
+                )
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = {
+                        description = it
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = {
+                        Text(
+                            text = "Observações adicionais"
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            text = "Ex.: veículo em local de difícil acesso, roda travada, vazamento etc."
+                        )
+                    },
+                    minLines = 3,
+                    maxLines = 6,
+                    colors = problemTextFieldColors()
                 )
             }
 
