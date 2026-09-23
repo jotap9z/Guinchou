@@ -604,10 +604,9 @@ private fun WaitingRequestsCard(
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Radar,
+            Image(
+                painter = painterResource(id = R.drawable.icone_guincho),
                 contentDescription = null,
-                tint = if (isOnline) GuinchouGreen else PartnerMuted,
                 modifier = Modifier.size(28.dp)
             )
         }
