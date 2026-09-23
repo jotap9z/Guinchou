@@ -16,15 +16,11 @@ class MainActivity : ComponentActivity() {
             TowRequestViewModel by viewModels()
 
     override fun onCreate(
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ) {
-
-        super.onCreate(
-            savedInstanceState
-        )
+        super.onCreate(savedInstanceState)
 
         setContent {
-
             GuinchouTheme {
 
                 val navController =
@@ -33,12 +29,9 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel by viewModels()
 
                 GuinchouNavGraph(
-                    navController =
-                        navController,
-                    towRequestViewModel =
-                        towRequestViewModel,
-                    authViewModel =
-                        authViewModel,
+                    navController = navController,
+                    towRequestViewModel = towRequestViewModel,
+                    authViewModel = authViewModel
                 )
             }
         }

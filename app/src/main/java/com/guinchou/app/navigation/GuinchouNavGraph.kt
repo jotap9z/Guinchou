@@ -19,6 +19,9 @@ import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
 import com.guinchou.app.ui.screens.partner.PartnerHomeScreen
+import com.guinchou.app.ui.screens.partner.PartnerCallsScreen
+import com.guinchou.app.ui.screens.partner.PartnerEarningsScreen
+import com.guinchou.app.ui.screens.partner.PartnerNotificationsScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
@@ -35,6 +38,11 @@ import com.guinchou.app.viewmodel.AuthViewModel
 import com.guinchou.app.viewmodel.CustomerHomeViewModel
 import com.guinchou.app.viewmodel.TowRequestViewModel
 
+private const val PARTNER_CALLS_ROUTE = "partner_calls"
+private const val PARTNER_EARNINGS_ROUTE = "partner_earnings"
+private const val PARTNER_EARNINGS_HISTORY_ROUTE = "partner_earnings_history"
+private const val PARTNER_NOTIFICATIONS_ROUTE = "partner_notifications"
+
 @Composable
 fun GuinchouNavGraph(
     navController: NavHostController,
@@ -48,18 +56,31 @@ fun GuinchouNavGraph(
         navController = navController,
         startDestination = Routes.SPLASH
     ) {
+
+        // =========================================================
+        // SPLASH
+        // =========================================================
+
         composable(route = Routes.SPLASH) {
             SplashScreen(
                 onFinished = {
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.SPLASH) { inclusive = true }
+                        popUpTo(Routes.SPLASH) {
+                            inclusive = true
+                        }
                     }
                 }
             )
         }
 
+        // =========================================================
+        // LOGIN
+        // =========================================================
+
         composable(route = Routes.LOGIN) {
-            val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+
+            val authUiState by
+            authViewModel.uiState.collectAsStateWithLifecycle()
 
             LaunchedEffect(authUiState.isAuthenticated) {
                 if (authUiState.isAuthenticated) {
@@ -70,7 +91,9 @@ fun GuinchouNavGraph(
             LoginScreen(
                 isLoading = authUiState.isLoading,
                 externalErrorMessage = authUiState.errorMessage,
+
                 onLoginClick = { identifier, password ->
+
                     if (identifier.contains("@")) {
                         authViewModel.signIn(
                             email = identifier.trim(),
@@ -78,38 +101,70 @@ fun GuinchouNavGraph(
                         )
                     }
                 },
+
                 onGoogleClick = {},
+
                 onCreateAccountClick = {
-                    navController.navigate(Routes.CREATE_ACCOUNT)
+                    navController.navigate(
+                        Routes.CREATE_ACCOUNT
+                    )
                 },
+
                 onForgotPasswordClick = {
-                    navController.navigate(Routes.FORGOT_PASSWORD)
+                    navController.navigate(
+                        Routes.FORGOT_PASSWORD
+                    )
                 },
+
                 onPartnerClick = {
-                    navController.navigate(Routes.PARTNER)
+                    navController.navigate(
+                        Routes.PARTNER
+                    )
                 }
             )
         }
 
+        // =========================================================
+        // CRIAR CONTA
+        // =========================================================
+
         composable(route = Routes.CREATE_ACCOUNT) {
+
             CreateAccountScreen(
+
                 onCreateAccountClick = { _, _, _, _, _ ->
+
                     navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
+
+                        popUpTo(Routes.LOGIN) {
+                            inclusive = true
+                        }
                     }
                 },
+
                 onLoginClick = {
                     navController.popBackStack()
                 }
             )
         }
 
+        // =========================================================
+        // RECUPERAÇÃO DE SENHA
+        // =========================================================
+
         composable(route = Routes.FORGOT_PASSWORD) {
+
             ForgotPasswordScreen(
+
                 onSendRecoveryClick = { email ->
+
                     recoveryEmail = email.trim()
-                    navController.navigate(Routes.RECOVERY_EMAIL_SENT)
+
+                    navController.navigate(
+                        Routes.RECOVERY_EMAIL_SENT
+                    )
                 },
+
                 onBackToLoginClick = {
                     navController.popBackStack()
                 }
@@ -117,102 +172,415 @@ fun GuinchouNavGraph(
         }
 
         composable(route = Routes.RECOVERY_EMAIL_SENT) {
+
             RecoveryEmailSentScreen(
+
                 email = recoveryEmail,
+
                 onBackToLoginClick = {
+
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FORGOT_PASSWORD) { inclusive = true }
+
+                        popUpTo(Routes.FORGOT_PASSWORD) {
+                            inclusive = true
+                        }
+
                         launchSingleTop = true
                     }
                 },
+
                 onResendClick = {}
             )
         }
 
+        // =========================================================
+        // ÁREA DO PARCEIRO
+        // =========================================================
+
         composable(route = Routes.PARTNER) {
+
             PartnerTypeScreen(
+
                 onIndependentDriverClick = {
-                    navController.navigate(Routes.DRIVER_REGISTER)
+                    navController.navigate(
+                        Routes.DRIVER_REGISTER
+                    )
                 },
+
                 onCompanyClick = {},
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
 
+        // =========================================================
+        // CADASTRO MOTORISTA
+        // =========================================================
+
         composable(route = Routes.DRIVER_REGISTER) {
+
             IndependentDriverRegistrationScreen(
+
                 onBackClick = {
                     navController.popBackStack()
                 },
+
                 onRegistrationFinished = {
-                    navController.navigate(Routes.PARTNER_HOME) {
-                        popUpTo(Routes.PARTNER) { inclusive = true }
+
+                    navController.navigate(
+                        Routes.PARTNER_HOME
+                    ) {
+
+                        popUpTo(Routes.PARTNER) {
+                            inclusive = true
+                        }
+
                         launchSingleTop = true
                     }
                 }
             )
         }
 
+        // =========================================================
+        // HOME PARCEIRO
+        // =========================================================
+
         composable(route = Routes.PARTNER_HOME) {
+
             PartnerHomeScreen(
+
                 driverName = "João",
                 todayTrips = 3,
                 todayEarnings = 382.50,
                 driverRating = 4.9,
                 documentWarningCount = 1,
-                onNotificationsClick = {},
-                onHistoryClick = {},
-                onEarningsClick = {},
+
+                // Sino -> Notificações
+                onNotificationsClick = {
+                    navController.navigate(
+                        PARTNER_NOTIFICATIONS_ROUTE
+                    )
+                },
+
+                // Histórico -> Histórico de ganhos
+                onHistoryClick = {
+                    navController.navigate(
+                        PARTNER_EARNINGS_HISTORY_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                // Footer Chamados -> Tela de Chamados
+                onCallsClick = {
+                    navController.navigate(
+                        PARTNER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                // Ganhos -> Tela principal de Ganhos
+                onEarningsClick = {
+                    navController.navigate(
+                        PARTNER_EARNINGS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
                 onDocumentsClick = {},
+
                 onProfileClick = {},
-                onTestRequestClick = {}
+
+                // Simular chamado -> Chamados
+                onTestRequestClick = {
+                    navController.navigate(
+                        PARTNER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 
-        composable(route = Routes.HOME) {
-            val homeState by customerHomeViewModel.uiState.collectAsStateWithLifecycle()
-            val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
+        // =========================================================
+        // CHAMADOS
+        // =========================================================
 
-            LaunchedEffect(authUiState.isAuthenticated) {
+        composable(route = PARTNER_CALLS_ROUTE) {
+
+            PartnerCallsScreen(
+
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onNotificationsClick = {
+
+                    navController.navigate(
+                        PARTNER_NOTIFICATIONS_ROUTE
+                    )
+                },
+
+                onCallClick = {},
+
+                onHomeClick = {
+
+                    navController.navigate(
+                        Routes.PARTNER_HOME
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onEarningsClick = {
+
+                    navController.navigate(
+                        PARTNER_EARNINGS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onProfileClick = {}
+            )
+        }
+
+        // =========================================================
+        // GANHOS
+        // =========================================================
+
+        composable(route = PARTNER_EARNINGS_ROUTE) {
+
+            PartnerEarningsScreen(
+
+                driverName = "João",
+
+                openHistory = false,
+
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onNotificationsClick = {
+
+                    navController.navigate(
+                        PARTNER_NOTIFICATIONS_ROUTE
+                    )
+                },
+
+                onHomeClick = {
+
+                    navController.navigate(
+                        Routes.PARTNER_HOME
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onCallsClick = {
+
+                    navController.navigate(
+                        PARTNER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onProfileClick = {}
+            )
+        }
+
+        // =========================================================
+        // HISTÓRICO DE GANHOS
+        // =========================================================
+
+        composable(
+            route = PARTNER_EARNINGS_HISTORY_ROUTE
+        ) {
+
+            PartnerEarningsScreen(
+
+                driverName = "João",
+
+                // Abre diretamente o histórico
+                openHistory = true,
+
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onNotificationsClick = {
+
+                    navController.navigate(
+                        PARTNER_NOTIFICATIONS_ROUTE
+                    )
+                },
+
+                onHomeClick = {
+
+                    navController.navigate(
+                        Routes.PARTNER_HOME
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onCallsClick = {
+
+                    navController.navigate(
+                        PARTNER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onProfileClick = {}
+            )
+        }
+
+        // =========================================================
+        // NOTIFICAÇÕES DO PARCEIRO
+        // =========================================================
+
+        composable(
+            route = PARTNER_NOTIFICATIONS_ROUTE
+        ) {
+
+            PartnerNotificationsScreen(
+
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                // Ver chamado -> Chamados
+                onCallClick = {
+
+                    navController.navigate(
+                        PARTNER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                // Ver ganhos -> Ganhos
+                onEarningsClick = {
+
+                    navController.navigate(
+                        PARTNER_EARNINGS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        // =========================================================
+        // HOME CLIENTE
+        // =========================================================
+
+        composable(route = Routes.HOME) {
+
+            val homeState by
+            customerHomeViewModel
+                .uiState
+                .collectAsStateWithLifecycle()
+
+            val authUiState by
+            authViewModel
+                .uiState
+                .collectAsStateWithLifecycle()
+
+            LaunchedEffect(
+                authUiState.isAuthenticated
+            ) {
+
                 if (authUiState.isAuthenticated) {
+
                     customerHomeViewModel.load()
+
                 } else {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+
+                    navController.navigate(
+                        Routes.LOGIN
+                    ) {
+
+                        popUpTo(Routes.HOME) {
+                            inclusive = true
+                        }
                     }
                 }
             }
 
             HomeScreen(
+
                 homeState = homeState,
+
                 onRequestTowClick = {
-                    if (!homeState.canRequestTow) return@HomeScreen
+
+                    if (!homeState.canRequestTow) {
+                        return@HomeScreen
+                    }
+
                     towRequestViewModel.clearRequest()
-                    navController.navigate(Routes.PICKUP)
+
+                    navController.navigate(
+                        Routes.PICKUP
+                    )
                 },
+
                 onNotificationClick = {},
+
                 onProfileClick = {
-                    navController.navigate(Routes.PROFILE)
+                    navController.navigate(
+                        Routes.PROFILE
+                    )
                 }
             )
         }
 
+        // =========================================================
+        // PERFIL CLIENTE
+        // =========================================================
+
         composable(route = Routes.PROFILE) {
-            val homeState by customerHomeViewModel.uiState.collectAsStateWithLifecycle()
+
+            val homeState by
+            customerHomeViewModel
+                .uiState
+                .collectAsStateWithLifecycle()
 
             ProfileScreen(
-                userName = homeState.home?.name ?: "Cliente",
-                userEmail = homeState.home?.email ?: "",
+
+                userName =
+                    homeState.home?.name
+                        ?: "Cliente",
+
+                userEmail =
+                    homeState.home?.email
+                        ?: "",
+
                 onBackClick = {
                     navController.popBackStack()
                 },
+
                 onLogoutClick = {
+
                     authViewModel.signOut {
+
                         customerHomeViewModel.clear()
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.HOME) { inclusive = true }
+
+                        navController.navigate(
+                            Routes.LOGIN
+                        ) {
+
+                            popUpTo(Routes.HOME) {
+                                inclusive = true
+                            }
+
                             launchSingleTop = true
                         }
                     }
@@ -220,224 +588,504 @@ fun GuinchouNavGraph(
             )
         }
 
+        // =========================================================
+        // LOCAL DE RETIRADA
+        // =========================================================
+
         composable(route = Routes.PICKUP) {
+
             PickupScreen(
-                onContinueClick = { address, latitude, longitude, source ->
+
+                onContinueClick = {
+                        address,
+                        latitude,
+                        longitude,
+                        source ->
+
                     if (
                         source == "GPS" &&
                         latitude != null &&
                         longitude != null
                     ) {
-                        towRequestViewModel.updatePickupFromGps(
-                            address = address,
-                            latitude = latitude,
-                            longitude = longitude
-                        )
+
+                        towRequestViewModel
+                            .updatePickupFromGps(
+                                address = address,
+                                latitude = latitude,
+                                longitude = longitude
+                            )
+
                     } else {
-                        towRequestViewModel.updatePickupAddress(address)
+
+                        towRequestViewModel
+                            .updatePickupAddress(
+                                address
+                            )
                     }
-                    navController.navigate(Routes.DESTINATION)
+
+                    navController.navigate(
+                        Routes.DESTINATION
+                    )
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
+
+        // =========================================================
+        // DESTINO
+        // =========================================================
 
         composable(route = Routes.DESTINATION) {
+
             DestinationScreen(
-                onContinueClick = { destinationAddress ->
-                    towRequestViewModel.updateDestinationAddress(
-                        destinationAddress
+
+                onContinueClick = {
+                        destinationAddress ->
+
+                    towRequestViewModel
+                        .updateDestinationAddress(
+                            destinationAddress
+                        )
+
+                    navController.navigate(
+                        Routes.VEHICLE
                     )
-                    navController.navigate(Routes.VEHICLE)
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
+
+        // =========================================================
+        // VEÍCULO
+        // =========================================================
 
         composable(route = Routes.VEHICLE) {
+
             VehicleScreen(
-                onContinueClick = { vehicleType, brand, model, year, plate ->
-                    towRequestViewModel.updateVehicle(
-                        type = vehicleType,
-                        brand = brand,
-                        model = model,
-                        year = year,
-                        plate = plate
+
+                onContinueClick = {
+                        vehicleType,
+                        brand,
+                        model,
+                        year,
+                        plate ->
+
+                    towRequestViewModel
+                        .updateVehicle(
+                            type = vehicleType,
+                            brand = brand,
+                            model = model,
+                            year = year,
+                            plate = plate
+                        )
+
+                    navController.navigate(
+                        Routes.PROBLEM
                     )
-                    navController.navigate(Routes.PROBLEM)
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
 
+        // =========================================================
+        // PROBLEMA
+        // =========================================================
+
         composable(route = Routes.PROBLEM) {
+
             ProblemScreen(
-                initialProblemType = towRequestViewModel.problemType,
-                initialProblemDetail = towRequestViewModel.problemDetail,
-                initialDescription = towRequestViewModel.problemDescription,
-                initialPhotoOneUri = towRequestViewModel.vehiclePhotoOneUri,
-                initialPhotoTwoUri = towRequestViewModel.vehiclePhotoTwoUri,
+
+                initialProblemType =
+                    towRequestViewModel.problemType,
+
+                initialProblemDetail =
+                    towRequestViewModel.problemDetail,
+
+                initialDescription =
+                    towRequestViewModel
+                        .problemDescription,
+
+                initialPhotoOneUri =
+                    towRequestViewModel
+                        .vehiclePhotoOneUri,
+
+                initialPhotoTwoUri =
+                    towRequestViewModel
+                        .vehiclePhotoTwoUri,
+
                 onPhotoOneChanged = { uri ->
+
                     if (uri != null) {
-                        towRequestViewModel.updateVehiclePhotoOne(uri)
+
+                        towRequestViewModel
+                            .updateVehiclePhotoOne(uri)
+
                     } else {
-                        towRequestViewModel.removeVehiclePhotoOne()
+
+                        towRequestViewModel
+                            .removeVehiclePhotoOne()
                     }
                 },
+
                 onPhotoTwoChanged = { uri ->
+
                     if (uri != null) {
-                        towRequestViewModel.updateVehiclePhotoTwo(uri)
+
+                        towRequestViewModel
+                            .updateVehiclePhotoTwo(uri)
+
                     } else {
-                        towRequestViewModel.removeVehiclePhotoTwo()
+
+                        towRequestViewModel
+                            .removeVehiclePhotoTwo()
                     }
                 },
-                onContinueClick = { problemType, problemDetail, description ->
-                    towRequestViewModel.updateProblem(
-                        type = problemType,
-                        detail = problemDetail,
-                        description = description
-                    )
+
+                onContinueClick = {
+                        problemType,
+                        problemDetail,
+                        description ->
+
+                    towRequestViewModel
+                        .updateProblem(
+                            type = problemType,
+                            detail = problemDetail,
+                            description = description
+                        )
+
                     if (
                         problemType == "ACCIDENT" &&
-                        !towRequestViewModel.hasRequiredAccidentPhotos()
+                        !towRequestViewModel
+                            .hasRequiredAccidentPhotos()
                     ) {
                         return@ProblemScreen
                     }
-                    towRequestViewModel.calculateEstimate(18.0)
-                    navController.navigate(Routes.ESTIMATE)
+
+                    towRequestViewModel
+                        .calculateEstimate(18.0)
+
+                    navController.navigate(
+                        Routes.ESTIMATE
+                    )
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
+
+        // =========================================================
+        // ESTIMATIVA
+        // =========================================================
 
         composable(route = Routes.ESTIMATE) {
+
             EstimateScreen(
-                pickupAddress = towRequestViewModel.pickupAddress,
-                destinationAddress = towRequestViewModel.destinationAddress,
-                vehicleType = towRequestViewModel.vehicleType,
-                vehicleBrand = towRequestViewModel.vehicleBrand,
-                vehicleModel = towRequestViewModel.vehicleModel,
-                problemDetail = towRequestViewModel.problemDetail,
-                distanceKm = towRequestViewModel.distanceKm,
-                servicePrice = towRequestViewModel.servicePrice,
+
+                pickupAddress =
+                    towRequestViewModel.pickupAddress,
+
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
+                vehicleType =
+                    towRequestViewModel.vehicleType,
+
+                vehicleBrand =
+                    towRequestViewModel.vehicleBrand,
+
+                vehicleModel =
+                    towRequestViewModel.vehicleModel,
+
+                problemDetail =
+                    towRequestViewModel.problemDetail,
+
+                distanceKm =
+                    towRequestViewModel.distanceKm,
+
+                servicePrice =
+                    towRequestViewModel.servicePrice,
+
                 onContinueClick = {
-                    navController.navigate(Routes.PAYMENT)
+                    navController.navigate(
+                        Routes.PAYMENT
+                    )
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
+
+        // =========================================================
+        // PAGAMENTO
+        // =========================================================
 
         composable(route = Routes.PAYMENT) {
+
             PaymentScreen(
-                servicePrice = towRequestViewModel.servicePrice,
+
+                servicePrice =
+                    towRequestViewModel.servicePrice,
+
                 onConfirmPaymentClick = { _ ->
-                    towRequestViewModel.startSearching()
-                    navController.navigate(Routes.SEARCHING)
+
+                    towRequestViewModel
+                        .startSearching()
+
+                    navController.navigate(
+                        Routes.SEARCHING
+                    )
                 },
+
                 onBackClick = {
                     navController.popBackStack()
                 }
             )
         }
 
+        // =========================================================
+        // BUSCANDO GUINCHO
+        // =========================================================
+
         composable(route = Routes.SEARCHING) {
+
             SearchingScreen(
-                pickupAddress = towRequestViewModel.pickupAddress,
-                destinationAddress = towRequestViewModel.destinationAddress,
-                vehicleBrand = towRequestViewModel.vehicleBrand,
-                vehicleModel = towRequestViewModel.vehicleModel,
-                problemDetail = towRequestViewModel.problemDetail,
-                servicePrice = towRequestViewModel.servicePrice,
+
+                pickupAddress =
+                    towRequestViewModel.pickupAddress,
+
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
+                vehicleBrand =
+                    towRequestViewModel.vehicleBrand,
+
+                vehicleModel =
+                    towRequestViewModel.vehicleModel,
+
+                problemDetail =
+                    towRequestViewModel.problemDetail,
+
+                servicePrice =
+                    towRequestViewModel.servicePrice,
+
                 onTowFound = {
-                    towRequestViewModel.acceptTowRequest(
-                        driverName = "Carlos Henrique",
-                        towTruckDescription = "Mercedes-Benz Accelo Plataforma",
-                        towTruckPlate = "ABC1D23",
-                        driverRating = 4.9,
-                        arrivalMinutes = 12
-                    )
-                    navController.navigate(Routes.TRACKING) {
-                        popUpTo(Routes.SEARCHING) { inclusive = true }
+
+                    towRequestViewModel
+                        .acceptTowRequest(
+
+                            driverName =
+                                "Carlos Henrique",
+
+                            towTruckDescription =
+                                "Mercedes-Benz Accelo Plataforma",
+
+                            towTruckPlate =
+                                "ABC1D23",
+
+                            driverRating = 4.9,
+
+                            arrivalMinutes = 12
+                        )
+
+                    navController.navigate(
+                        Routes.TRACKING
+                    ) {
+
+                        popUpTo(Routes.SEARCHING) {
+                            inclusive = true
+                        }
                     }
                 },
+
                 onCancelClick = {
-                    towRequestViewModel.cancelRequest()
-                    towRequestViewModel.clearRequest()
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = false }
+
+                    towRequestViewModel
+                        .cancelRequest()
+
+                    towRequestViewModel
+                        .clearRequest()
+
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+
+                        popUpTo(Routes.HOME) {
+                            inclusive = false
+                        }
+
                         launchSingleTop = true
                     }
                 }
             )
         }
 
+        // =========================================================
+        // ACOMPANHAMENTO
+        // =========================================================
+
         composable(route = Routes.TRACKING) {
+
             TrackingScreen(
-                pickupAddress = towRequestViewModel.pickupAddress,
-                destinationAddress = towRequestViewModel.destinationAddress,
-                driverName = towRequestViewModel.acceptedDriverName,
+
+                pickupAddress =
+                    towRequestViewModel.pickupAddress,
+
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
+                driverName =
+                    towRequestViewModel
+                        .acceptedDriverName,
+
                 towTruckDescription =
-                    towRequestViewModel.acceptedTowTruckDescription,
-                towTruckPlate = towRequestViewModel.acceptedTowTruckPlate,
+                    towRequestViewModel
+                        .acceptedTowTruckDescription,
+
+                towTruckPlate =
+                    towRequestViewModel
+                        .acceptedTowTruckPlate,
+
                 estimatedArrivalMinutes =
-                    towRequestViewModel.estimatedArrivalMinutes,
-                driverRating = towRequestViewModel.acceptedDriverRating,
-                requestStatus = towRequestViewModel.requestStatus,
+                    towRequestViewModel
+                        .estimatedArrivalMinutes,
+
+                driverRating =
+                    towRequestViewModel
+                        .acceptedDriverRating,
+
+                requestStatus =
+                    towRequestViewModel
+                        .requestStatus,
+
                 onCallClick = {},
+
                 onMessageClick = {},
+
                 onAdvanceTestClick = {
-                    when (towRequestViewModel.requestStatus) {
-                        TowRequestStatus.DRIVER_ON_THE_WAY -> {
-                            towRequestViewModel.markDriverArrived()
+
+                    when (
+                        towRequestViewModel
+                            .requestStatus
+                    ) {
+
+                        TowRequestStatus
+                            .DRIVER_ON_THE_WAY -> {
+
+                            towRequestViewModel
+                                .markDriverArrived()
                         }
-                        TowRequestStatus.ARRIVED -> {
-                            towRequestViewModel.markVehicleLoaded()
+
+                        TowRequestStatus
+                            .ARRIVED -> {
+
+                            towRequestViewModel
+                                .markVehicleLoaded()
                         }
-                        TowRequestStatus.VEHICLE_LOADED -> {
-                            towRequestViewModel.startTransport()
+
+                        TowRequestStatus
+                            .VEHICLE_LOADED -> {
+
+                            towRequestViewModel
+                                .startTransport()
                         }
-                        TowRequestStatus.IN_TRANSIT -> {
-                            towRequestViewModel.completeRequest()
-                            navController.navigate(Routes.COMPLETED) {
-                                popUpTo(Routes.TRACKING) {
+
+                        TowRequestStatus
+                            .IN_TRANSIT -> {
+
+                            towRequestViewModel
+                                .completeRequest()
+
+                            navController.navigate(
+                                Routes.COMPLETED
+                            ) {
+
+                                popUpTo(
+                                    Routes.TRACKING
+                                ) {
                                     inclusive = true
                                 }
                             }
                         }
+
                         else -> {}
                     }
                 },
+
                 onCancelClick = {
-                    towRequestViewModel.cancelRequest()
-                    towRequestViewModel.clearRequest()
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = false }
+
+                    towRequestViewModel
+                        .cancelRequest()
+
+                    towRequestViewModel
+                        .clearRequest()
+
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+
+                        popUpTo(Routes.HOME) {
+                            inclusive = false
+                        }
+
                         launchSingleTop = true
                     }
                 }
             )
         }
 
+        // =========================================================
+        // FINALIZADO
+        // =========================================================
+
         composable(route = Routes.COMPLETED) {
+
             CompletedScreen(
-                driverName = towRequestViewModel.acceptedDriverName,
-                pickupAddress = towRequestViewModel.pickupAddress,
-                destinationAddress = towRequestViewModel.destinationAddress,
-                servicePrice = towRequestViewModel.servicePrice,
+
+                driverName =
+                    towRequestViewModel
+                        .acceptedDriverName,
+
+                pickupAddress =
+                    towRequestViewModel
+                        .pickupAddress,
+
+                destinationAddress =
+                    towRequestViewModel
+                        .destinationAddress,
+
+                servicePrice =
+                    towRequestViewModel
+                        .servicePrice,
+
                 onFinishClick = { _ ->
-                    towRequestViewModel.clearRequest()
-                    navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.HOME) { inclusive = false }
+
+                    towRequestViewModel
+                        .clearRequest()
+
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+
+                        popUpTo(Routes.HOME) {
+                            inclusive = false
+                        }
+
                         launchSingleTop = true
                     }
                 }
@@ -446,9 +1094,16 @@ fun GuinchouNavGraph(
     }
 }
 
-private fun openHome(navController: NavHostController) {
+private fun openHome(
+    navController: NavHostController
+) {
+
     navController.navigate(Routes.HOME) {
-        popUpTo(Routes.LOGIN) { inclusive = true }
+
+        popUpTo(Routes.LOGIN) {
+            inclusive = true
+        }
+
         launchSingleTop = true
     }
 }
