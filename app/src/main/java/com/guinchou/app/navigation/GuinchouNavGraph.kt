@@ -17,9 +17,9 @@ import com.guinchou.app.ui.screens.auth.ForgotPasswordScreen
 import com.guinchou.app.ui.screens.auth.LoginScreen
 import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
-import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
 import com.guinchou.app.ui.screens.partner.PartnerHomeScreen
+import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
 import com.guinchou.app.ui.screens.request.CompletedScreen
@@ -173,9 +173,10 @@ fun GuinchouNavGraph(
 
         composable(route = Routes.HOME) {
             val homeState by customerHomeViewModel.uiState.collectAsStateWithLifecycle()
+            val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
 
-            LaunchedEffect(authViewModel.uiState.value.isAuthenticated) {
-                if (authViewModel.uiState.value.isAuthenticated) {
+            LaunchedEffect(authUiState.isAuthenticated) {
+                if (authUiState.isAuthenticated) {
                     customerHomeViewModel.load()
                 } else {
                     navController.navigate(Routes.LOGIN) {
