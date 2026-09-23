@@ -39,177 +39,81 @@ import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import com.guinchou.app.viewmodel.CustomerHomeUiState
 
-/**
- * Home principal do cliente.
- *
- * Esta versão foi preparada para diferentes:
- *
- * - tamanhos de tela;
- * - proporções de tela;
- * - barras de navegação;
- * - barras de status;
- * - câmeras frontais/notches;
- * - aparelhos Android.
- */
 @Composable
 fun HomeScreen(
-
-    // Inicia solicitação de guincho.
+    homeState: CustomerHomeUiState,
     onRequestTowClick: () -> Unit,
-
-    // Abre notificações futuramente.
     onNotificationClick: () -> Unit = {},
-
-    // Abre perfil futuramente.
     onProfileClick: () -> Unit = {}
 ) {
-
-    /*
-     * Box principal.
-     *
-     * O fundo ocupa inclusive as regiões
-     * abaixo das barras do sistema.
-     */
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                GuinchouBackground
-            )
+            .background(GuinchouBackground)
     ) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val compactHeight = maxHeight < 700.dp
+            val mapHeight = if (compactHeight) 200.dp else 260.dp
 
-        /*
-         * BoxWithConstraints permite descobrir
-         * quanto espaço está realmente disponível.
-         *
-         * Isso evita assumir que todos os celulares
-         * possuem a mesma altura.
-         */
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize()
-        ) {
-
-            /*
-             * Detectamos aproximadamente
-             * se o aparelho possui uma tela
-             * vertical mais compacta.
-             */
-            val compactHeight =
-                maxHeight < 700.dp
-
-            /*
-             * O tamanho do mapa se adapta.
-             *
-             * Celulares menores:
-             * 200 dp
-             *
-             * Celulares normais/grandes:
-             * 260 dp
-             */
-            val mapHeight =
-                if (compactHeight) {
-                    200.dp
-                } else {
-                    260.dp
-                }
-
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-
-                /*
-                 * ===================================
-                 * CONTEÚDO SUPERIOR
-                 * ===================================
-                 *
-                 * Todo este conteúdo pode rolar
-                 * caso a tela seja pequena.
-                 */
+            Column(modifier = Modifier.fillMaxSize()) {
                 Column(
-
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-
-                        /*
-                         * Não deixa o conteúdo
-                         * entrar atrás da barra de status.
-                         */
                         .statusBarsPadding()
-
-                        /*
-                         * Permite rolagem vertical
-                         * em aparelhos pequenos.
-                         */
-                        .verticalScroll(
-                            rememberScrollState()
-                        )
+                        .verticalScroll(rememberScrollState())
                 ) {
-
-                    /*
-                     * ===================================
-                     * CABEÇALHO
-                     * ===================================
-                     */
                     Row(
-
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
                                 horizontal = 20.dp,
                                 vertical = 14.dp
                             ),
-
-                        verticalAlignment =
-                            Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "GUINCHOU",
                                 color = GuinchouWhite,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
                             )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(2.dp)
-                            )
-
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Seu socorro chegou.",
                                 color = GuinchouGray,
                                 fontSize = 13.sp
                             )
+                            Text(
+                                text = when {
+                                    homeState.loading ->
+                                        "Carregando seus dados..."
+                                    homeState.error != null ->
+                                        homeState.error
+                                    else ->
+                                        "Olá, ${homeState.home?.name ?: "Cliente"} · " +
+                                                "${homeState.home?.completedServices ?: 0} " +
+                                                "serviço(s) concluído(s)"
+                                },
+                                color = GuinchouGray,
+                                fontSize = 12.sp
+                            )
                         }
 
-                        /*
-                         * Notificações.
-                         */
                         Box(
-
                             modifier = Modifier
                                 .size(44.dp)
-
                                 .border(
                                     width = 1.dp,
                                     color = GuinchouBorder,
                                     shape = CircleShape
                                 )
-
-                                .clickable {
-                                    onNotificationClick()
-                                },
-
-                            contentAlignment =
-                                Alignment.Center
+                                .clickable { onNotificationClick() },
+                            contentAlignment = Alignment.Center
                         ) {
-
                             Text(
                                 text = "!",
                                 color = GuinchouGreen,
@@ -218,404 +122,191 @@ fun HomeScreen(
                         }
                     }
 
-
-                    /*
-                     * ===================================
-                     * MAPA
-                     * ===================================
-                     *
-                     * Ainda é temporário.
-                     *
-                     * Posteriormente este componente
-                     * será substituído pelo Google Maps.
-                     */
                     Box(
-
                         modifier = Modifier
                             .fillMaxWidth()
-
-                            /*
-                             * Altura responsiva.
-                             */
                             .height(mapHeight)
-
-                            /*
-                             * Evita tamanhos extremos.
-                             */
                             .heightIn(
                                 min = 180.dp,
                                 max = 300.dp
                             )
-
-                            .padding(
-                                horizontal = 16.dp
-                            )
-
+                            .padding(horizontal = 16.dp)
                             .background(
                                 color = GuinchouSurface,
-                                shape = RoundedCornerShape(
-                                    20.dp
-                                )
+                                shape = RoundedCornerShape(20.dp)
                             )
-
                             .border(
                                 width = 1.dp,
                                 color = GuinchouBorder,
-                                shape = RoundedCornerShape(
-                                    20.dp
-                                )
+                                shape = RoundedCornerShape(20.dp)
                             ),
-
-                        contentAlignment =
-                            Alignment.Center
+                        contentAlignment = Alignment.Center
                     ) {
-
                         Column(
-
-                            horizontalAlignment =
-                                Alignment.CenterHorizontally
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-
-                            /*
-                             * Localização temporária.
-                             */
                             Box(
-
                                 modifier = Modifier
                                     .size(22.dp)
-
                                     .background(
                                         color = GuinchouGreen,
                                         shape = CircleShape
                                     )
                             )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(12.dp)
-                            )
-
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
                                 text = "Mapa",
                                 color = GuinchouWhite,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
                             )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.height(4.dp)
-                            )
-
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text =
-                                    "Sua localização aparecerá aqui",
+                                text = "Sua localização aparecerá aqui",
                                 color = GuinchouGray,
                                 fontSize = 13.sp,
                                 textAlign = TextAlign.Center,
-                                modifier =
-                                    Modifier.padding(
-                                        horizontal = 16.dp
-                                    )
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     }
 
-
                     Spacer(
-                        modifier =
-                            Modifier.height(
-                                if (compactHeight) {
-                                    12.dp
-                                } else {
-                                    18.dp
-                                }
-                            )
+                        modifier = Modifier.height(
+                            if (compactHeight) 12.dp else 18.dp
+                        )
                     )
 
-
-                    /*
-                     * ===================================
-                     * SOLICITAÇÃO
-                     * ===================================
-                     */
                     Column(
-
                         modifier = Modifier
                             .fillMaxWidth()
-
-                            .padding(
-                                horizontal = 16.dp
-                            )
-
+                            .padding(horizontal = 16.dp)
                             .background(
                                 color = GuinchouSurface,
-                                shape = RoundedCornerShape(
-                                    20.dp
-                                )
+                                shape = RoundedCornerShape(20.dp)
                             )
-
                             .border(
                                 width = 1.dp,
                                 color = GuinchouBorder,
-                                shape = RoundedCornerShape(
-                                    20.dp
-                                )
+                                shape = RoundedCornerShape(20.dp)
                             )
-
                             .padding(
-                                if (compactHeight) {
-                                    16.dp
-                                } else {
-                                    20.dp
-                                }
+                                if (compactHeight) 16.dp else 20.dp
                             )
                     ) {
-
                         Text(
-                            text =
-                                "Onde está o veículo?",
+                            text = "Onde está o veículo?",
                             color = GuinchouWhite,
                             fontSize = 21.sp,
-                            fontWeight =
-                                FontWeight.Bold
+                            fontWeight = FontWeight.Bold
                         )
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(6.dp)
-                        )
-
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text =
-                                "Informe o local exato para encontrarmos um guincho próximo.",
-                            color =
-                                GuinchouGray,
+                            text = "Informe o local exato para encontrarmos " +
+                                    "um guincho próximo.",
+                            color = GuinchouGray,
                             fontSize = 14.sp
                         )
+                        Spacer(modifier = Modifier.height(18.dp))
 
-
-                        Spacer(
-                            modifier =
-                                Modifier.height(18.dp)
-                        )
-
-
-                        /*
-                         * ===================================
-                         * LOCALIZAÇÃO
-                         * ===================================
-                         */
                         Row(
-
                             modifier = Modifier
                                 .fillMaxWidth()
-
                                 .background(
-                                    color =
-                                        GuinchouBackground,
-                                    shape =
-                                        RoundedCornerShape(
-                                            14.dp
-                                        )
+                                    color = GuinchouBackground,
+                                    shape = RoundedCornerShape(14.dp)
                                 )
-
                                 .border(
                                     width = 1.dp,
-                                    color =
-                                        GuinchouBorder,
-                                    shape =
-                                        RoundedCornerShape(
-                                            14.dp
-                                        )
+                                    color = GuinchouBorder,
+                                    shape = RoundedCornerShape(14.dp)
                                 )
-
                                 .padding(14.dp),
-
-                            verticalAlignment =
-                                Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-
                             Box(
-
-                                modifier =
-                                    Modifier
-                                        .size(12.dp)
-
-                                        .background(
-                                            color =
-                                                GuinchouGreen,
-                                            shape =
-                                                CircleShape
-                                        )
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(
+                                        color = GuinchouGreen,
+                                        shape = CircleShape
+                                    )
                             )
-
-                            Spacer(
-                                modifier =
-                                    Modifier.size(12.dp)
-                            )
-
-                            Column(
-                                modifier =
-                                    Modifier.weight(1f)
-                            ) {
-
+                            Spacer(modifier = Modifier.size(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text =
-                                        "Localização atual",
-                                    color =
-                                        GuinchouWhite,
+                                    text = "Localização atual",
+                                    color = GuinchouWhite,
                                     fontSize = 14.sp,
-                                    fontWeight =
-                                        FontWeight.SemiBold
+                                    fontWeight = FontWeight.SemiBold
                                 )
-
-                                Spacer(
-                                    modifier =
-                                        Modifier.height(
-                                            2.dp
-                                        )
-                                )
-
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text =
-                                        "Toque para definir o endereço",
-                                    color =
-                                        GuinchouGray,
+                                    text = "Toque para definir o endereço",
+                                    color = GuinchouGray,
                                     fontSize = 12.sp
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(18.dp))
 
-                        Spacer(
-                            modifier =
-                                Modifier.height(18.dp)
-                        )
+                        if (homeState.home?.activeRequestId != null) {
+                            Text(
+                                text = "Atendimento em andamento: " +
+                                        "${homeState.home.activeRequestStatus}",
+                                color = GuinchouGreen,
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(bottom = 10.dp)
+                            )
+                        }
 
-
-                        /*
-                         * ===================================
-                         * BOTÃO PRINCIPAL
-                         * ===================================
-                         */
                         Button(
-
-                            onClick =
-                                onRequestTowClick,
-
+                            onClick = onRequestTowClick,
+                            enabled = homeState.canRequestTow,
                             modifier = Modifier
                                 .fillMaxWidth()
-
-                                /*
-                                 * 56dp garante uma área
-                                 * confortável para toque.
-                                 */
                                 .height(56.dp),
-
-                            shape =
-                                RoundedCornerShape(
-                                    14.dp
-                                ),
-
-                            colors =
-                                ButtonDefaults
-                                    .buttonColors(
-
-                                        containerColor =
-                                            GuinchouGreen,
-
-                                        contentColor =
-                                            GuinchouBackground
-                                    )
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = GuinchouGreen,
+                                contentColor = GuinchouBackground
+                            )
                         ) {
-
                             Text(
-
-                                text =
-                                    "Solicitar um guincho",
-
-                                fontWeight =
-                                    FontWeight.Bold,
-
+                                text = "Solicitar um guincho",
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp
                             )
                         }
                     }
 
-
-                    /*
-                     * Espaço inferior para evitar
-                     * que o conteúdo rolável fique
-                     * colado no menu.
-                     */
-                    Spacer(
-                        modifier =
-                            Modifier.height(16.dp)
-                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-
-                /*
-                 * ===================================
-                 * MENU INFERIOR
-                 * ===================================
-                 *
-                 * Não faz parte da área rolável.
-                 *
-                 * Assim ele permanece estável
-                 * independentemente da altura.
-                 */
-                HorizontalDivider(
-                    color =
-                        GuinchouBorder
-                )
-
+                HorizontalDivider(color = GuinchouBorder)
 
                 Row(
-
                     modifier = Modifier
                         .fillMaxWidth()
-
-                        .background(
-                            GuinchouBackground
-                        )
-
-                        /*
-                         * Mantém o menu acima da
-                         * barra de navegação do Android.
-                         */
+                        .background(GuinchouBackground)
                         .navigationBarsPadding()
-
                         .padding(
                             horizontal = 8.dp,
                             vertical = 8.dp
                         ),
-
-                    horizontalArrangement =
-                        Arrangement.SpaceAround,
-
-                    verticalAlignment =
-                        Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     BottomItem(
                         text = "Início",
                         selected = true
                     )
-
-                    BottomItem(
-                        text = "Chamados"
-                    )
-
-                    BottomItem(
-                        text = "Pagamentos"
-                    )
-
+                    BottomItem(text = "Chamados")
+                    BottomItem(text = "Pagamentos")
                     BottomItem(
                         text = "Perfil",
-                        onClick =
-                            onProfileClick
+                        onClick = onProfileClick
                     )
                 }
             }
@@ -623,99 +314,39 @@ fun HomeScreen(
     }
 }
 
-
-/**
- * Componente do menu inferior.
- *
- * Ele utiliza peso igual para que
- * todas as opções ocupem o mesmo espaço.
- */
 @Composable
 private fun BottomItem(
-
     text: String,
-
     selected: Boolean = false,
-
     onClick: () -> Unit = {}
 ) {
-
     Column(
-
         modifier = Modifier
-
-            /*
-             * Cada item recebe uma área
-             * confortável de toque.
-             */
-            .clickable {
-                onClick()
-            }
-
+            .clickable { onClick() }
             .padding(
                 horizontal = 10.dp,
                 vertical = 6.dp
             ),
-
-        horizontalAlignment =
-            Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        /*
-         * Indicador da aba atual.
-         */
         Box(
-
             modifier = Modifier
-
                 .size(6.dp)
-
                 .background(
-
-                    color =
-
-                        if (selected) {
-
-                            GuinchouGreen
-
-                        } else {
-
-                            Color.Transparent
-                        },
-
-                    shape =
-                        CircleShape
+                    color = if (selected) {
+                        GuinchouGreen
+                    } else {
+                        Color.Transparent
+                    },
+                    shape = CircleShape
                 )
         )
-
-        Spacer(
-            modifier =
-                Modifier.height(4.dp)
-        )
-
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-
             text = text,
-
-            color =
-
-                if (selected) {
-
-                    GuinchouGreen
-
-                } else {
-
-                    GuinchouGray
-                },
-
-            /*
-             * Mantemos tamanho legível.
-             */
+            color = if (selected) GuinchouGreen else GuinchouGray,
             fontSize = 12.sp,
-
-            textAlign =
-                TextAlign.Center,
-
+            textAlign = TextAlign.Center,
             maxLines = 1
         )
     }
