@@ -1,11 +1,10 @@
 package com.guinchou.app.ui.screens.request
 
+import android.location.Address
+import android.location.Geocoder
+import android.os.Build
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,12 +15,11 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,15 +29,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guinchou.app.ui.theme.GuinchouBackground
@@ -48,121 +45,53 @@ import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.util.Locale
+import kotlin.coroutines.resume
 
-/**
- * Etapa 2 de 5 da solicitação de guincho.
- *
- * O cliente informa para onde o veículo
- * deverá ser transportado.
- */
 @Composable
 fun DestinationScreen(
-    onContinueClick: (String) -> Unit,
+    onContinueClick: (
+        address: String,
+        latitude: Double,
+        longitude: Double
+    ) -> Unit,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    /*
-     * Endereço digitado pelo usuário.
-     */
-    var destinationAddress by remember {
-        mutableStateOf("")
-    }
-
-    /*
-     * Mensagem de validação.
-     */
-    var errorMessage by remember {
-        mutableStateOf<String?>(null)
-    }
-
-    /*
-     * Controla o foco atual da interface.
-     */
-    val focusManager: FocusManager =
-        LocalFocusManager.current
-
-    /*
-     * Controla o teclado virtual.
-     */
-    val keyboardController =
-        LocalSoftwareKeyboardController.current
-
-    /*
-     * Remove o efeito visual de clique
-     * no fundo da tela.
-     */
-    val backgroundInteractionSource =
-        remember {
-            MutableInteractionSource()
-        }
+    var destinationAddress by rememberSaveable { mutableStateOf("") }
+    var isSearching by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                GuinchouBackground
-            )
-
-            /*
-             * Ao tocar fora de um campo:
-             *
-             * - remove o foco;
-             * - fecha o teclado;
-             * - mantém o texto preenchido.
-             */
-            .clickable(
-                interactionSource =
-                    backgroundInteractionSource,
-                indication = null
-            ) {
-
-                focusManager.clearFocus()
-                keyboardController?.hide()
-            }
-
-            /*
-             * Protege a área superior.
-             */
+            .background(GuinchouBackground)
             .statusBarsPadding()
-
-            /*
-             * Protege a área inferior.
-             */
             .navigationBarsPadding()
     ) {
-
-        /*
-         * Conteúdo rolável.
-         */
         Column(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .verticalScroll(
-                    rememberScrollState()
-                )
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 16.dp
-                )
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-
-            /*
-             * Indicador da etapa.
-             */
             Text(
                 text = "2 de 5",
                 color = GuinchouGray,
                 fontSize = 13.sp
             )
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            /*
-             * Título.
-             */
             Text(
                 text = "Para onde o veículo será levado?",
                 color = GuinchouWhite,
@@ -170,447 +99,191 @@ fun DestinationScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
+            Spacer(modifier = Modifier.height(8.dp))
 
-            /*
-             * Descrição.
-             */
             Text(
-                text = "Informe o endereço exato do destino.",
+                text = "Informe o endereço completo para localizar o destino.",
                 color = GuinchouGray,
                 fontSize = 14.sp
             )
 
-            Spacer(
-                modifier = Modifier.height(28.dp)
-            )
+            Spacer(modifier = Modifier.height(28.dp))
 
-            /*
-             * ========================================
-             * CAMPO DE DESTINO
-             * ========================================
-             */
             OutlinedTextField(
                 value = destinationAddress,
-
                 onValueChange = {
-
                     destinationAddress = it
-
-                    /*
-                     * Remove erro quando
-                     * o usuário começa a corrigir.
-                     */
                     errorMessage = null
                 },
-
-                modifier =
-                    Modifier.fillMaxWidth(),
-
-                label = {
-                    Text(
-                        text = "Destino"
-                    )
-                },
-
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSearching,
+                label = { Text("Destino") },
                 placeholder = {
-                    Text(
-                        text = "Digite o endereço completo"
-                    )
+                    Text("Rua, número, bairro, cidade e estado")
                 },
-
-                singleLine = false,
-
-                keyboardOptions =
-                    KeyboardOptions(
-                        keyboardType =
-                            KeyboardType.Text
-                    ),
-
-                colors =
-                    OutlinedTextFieldDefaults.colors(
-
-                        focusedTextColor =
-                            GuinchouWhite,
-
-                        unfocusedTextColor =
-                            GuinchouWhite,
-
-                        focusedBorderColor =
-                            GuinchouGreen,
-
-                        unfocusedBorderColor =
-                            GuinchouBorder,
-
-                        focusedLabelColor =
-                            GuinchouGreen,
-
-                        unfocusedLabelColor =
-                            GuinchouGray,
-
-                        cursorColor =
-                            GuinchouGreen,
-
-                        focusedContainerColor =
-                            GuinchouSurface,
-
-                        unfocusedContainerColor =
-                            GuinchouSurface
-                    )
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = GuinchouWhite,
+                    unfocusedTextColor = GuinchouWhite,
+                    focusedBorderColor = GuinchouGreen,
+                    unfocusedBorderColor = GuinchouBorder,
+                    focusedLabelColor = GuinchouGreen,
+                    unfocusedLabelColor = GuinchouGray,
+                    cursorColor = GuinchouGreen,
+                    focusedContainerColor = GuinchouSurface,
+                    unfocusedContainerColor = GuinchouSurface
+                )
             )
 
-            /*
-             * Mensagem de erro.
-             */
             if (errorMessage != null) {
-
-                Spacer(
-                    modifier = Modifier.height(8.dp)
-                )
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = errorMessage!!,
-                    color =
-                        MaterialTheme
-                            .colorScheme
-                            .error,
+                    text = errorMessage.orEmpty(),
+                    color = MaterialTheme.colorScheme.error,
                     fontSize = 13.sp
                 )
             }
 
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
-            /*
-             * ========================================
-             * MAPA TEMPORÁRIO
-             * ========================================
-             */
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .background(
-                        color = GuinchouSurface,
-                        shape = RoundedCornerShape(
-                            18.dp
-                        )
-                    )
-                    .border(
-                        width = 1.dp,
-                        color = GuinchouBorder,
-                        shape = RoundedCornerShape(
-                            18.dp
-                        )
-                    ),
-
-                contentAlignment =
-                    Alignment.Center
-            ) {
-
-                Column(
-                    horizontalAlignment =
-                        Alignment.CenterHorizontally
-                ) {
-
-                    /*
-                     * Marcador visual.
-                     */
-                    Box(
-                        modifier = Modifier
-                            .height(18.dp)
-                            .fillMaxWidth(0.05f)
-                            .background(
-                                color = GuinchouGreen,
-                                shape = CircleShape
-                            )
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(10.dp)
-                    )
-
-                    Text(
-                        text = "Destino",
-                        color = GuinchouWhite,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(
-                        modifier = Modifier.height(4.dp)
-                    )
-
-                    Text(
-                        text =
-                            "O destino será exibido no mapa",
-                        color = GuinchouGray,
-                        fontSize = 13.sp,
-                        textAlign =
-                            TextAlign.Center
-                    )
-                }
-            }
-
-            Spacer(
-                modifier = Modifier.height(24.dp)
-            )
-
-            /*
-             * ========================================
-             * DESTINOS RECENTES
-             * ========================================
-             */
             Text(
-                text = "Destinos recentes",
-                color = GuinchouWhite,
-                fontSize = 16.sp,
-                fontWeight =
-                    FontWeight.SemiBold
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
-            )
-
-            /*
-             * Opção temporária 1.
-             */
-            DestinationOption(
-                title = "Minha casa",
-                subtitle = "Endereço salvo",
-                onClick = {
-
-                    destinationAddress =
-                        "Minha casa"
-
-                    /*
-                     * Remove foco caso o teclado
-                     * ainda esteja aberto.
-                     */
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-            )
-
-            Spacer(
-                modifier = Modifier.height(10.dp)
-            )
-
-            /*
-             * Opção temporária 2.
-             */
-            DestinationOption(
-                title = "Oficina parceira",
-                subtitle = "Destino frequente",
-                onClick = {
-
-                    destinationAddress =
-                        "Oficina parceira"
-
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-                }
-            )
-
-            Spacer(
-                modifier = Modifier.height(20.dp)
+                text = "Confira o endereço antes de continuar. Se ele não for encontrado, informe também o número e a cidade.",
+                color = GuinchouGray,
+                fontSize = 13.sp
             )
         }
 
-        /*
-         * ========================================
-         * BOTÕES INFERIORES
-         * ========================================
-         */
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(
-                    horizontal = 20.dp,
-                    vertical = 12.dp
-                ),
-
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
-                )
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            /*
-             * VOLTAR
-             */
             OutlinedButton(
-                onClick = {
-
-                    /*
-                     * Fecha teclado antes
-                     * de navegar.
-                     */
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
-
-                    onBackClick()
-                },
-
+                onClick = onBackClick,
+                enabled = !isSearching,
                 modifier = Modifier
                     .weight(1f)
                     .height(54.dp),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
+                shape = RoundedCornerShape(14.dp)
             ) {
-
-                Text(
-                    text = "Voltar",
-                    color = GuinchouWhite
-                )
+                Text("Voltar", color = GuinchouWhite)
             }
 
-            /*
-             * CONTINUAR
-             */
             Button(
                 onClick = {
+                    val address = destinationAddress.trim()
 
-                    /*
-                     * Fecha teclado primeiro.
-                     */
-                    focusManager.clearFocus()
-                    keyboardController?.hide()
+                    if (address.isBlank()) {
+                        errorMessage = "Informe o destino do veículo."
+                    } else {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        isSearching = true
+                        errorMessage = null
 
-                    /*
-                     * Valida destino.
-                     */
-                    if (
-                        destinationAddress.isBlank()
-                    ) {
+                        scope.launch {
+                            try {
+                                val location = geocodeDestination(
+                                    address = address,
+                                    geocoder = Geocoder(
+                                        context.applicationContext,
+                                        Locale("pt", "BR")
+                                    )
+                                )
 
-                        errorMessage =
-                            "Informe o destino do veículo."
-
-                        return@Button
+                                if (location == null) {
+                                    errorMessage =
+                                        "Não foi possível localizar esse endereço. Informe rua, número, cidade e estado."
+                                } else {
+                                    onContinueClick(
+                                        address,
+                                        location.latitude,
+                                        location.longitude
+                                    )
+                                }
+                            } catch (exception: Exception) {
+                                errorMessage =
+                                    "Falha ao localizar o destino. Verifique a conexão e tente novamente."
+                            } finally {
+                                isSearching = false
+                            }
+                        }
                     }
-
-                    /*
-                     * Envia destino para
-                     * a próxima etapa.
-                     */
-                    onContinueClick(
-                        destinationAddress.trim()
-                    )
                 },
-
+                enabled = !isSearching,
                 modifier = Modifier
                     .weight(1.4f)
                     .height(54.dp),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    ),
-
-                colors =
-                    ButtonDefaults
-                        .buttonColors(
-
-                            containerColor =
-                                GuinchouGreen,
-
-                            contentColor =
-                                GuinchouBackground
-                        )
-            ) {
-
-                Text(
-                    text = "Continuar",
-                    fontWeight =
-                        FontWeight.Bold
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = GuinchouGreen,
+                    contentColor = GuinchouBackground
                 )
+            ) {
+                if (isSearching) {
+                    CircularProgressIndicator(
+                        color = GuinchouBackground
+                    )
+                } else {
+                    Text(
+                        text = "Continuar",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
 }
 
+private data class DestinationLocation(
+    val latitude: Double,
+    val longitude: Double
+)
 
-/**
- * Card reutilizável para destinos recentes.
- */
-@Composable
-private fun DestinationOption(
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
+private suspend fun geocodeDestination(
+    address: String,
+    geocoder: Geocoder
+): DestinationLocation? {
+    if (!Geocoder.isPresent()) return null
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                color = GuinchouSurface,
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
-            )
-            .border(
-                width = 1.dp,
-                color = GuinchouBorder,
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
-            )
-            .clickable {
+    val result: Address? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            suspendCancellableCoroutine { continuation ->
+                geocoder.getFromLocationName(
+                    address,
+                    1,
+                    object : Geocoder.GeocodeListener {
+                        override fun onGeocode(addresses: MutableList<Address>) {
+                            if (continuation.isActive) {
+                                continuation.resume(addresses.firstOrNull())
+                            }
+                        }
 
-                onClick()
+                        override fun onError(errorMessage: String?) {
+                            if (continuation.isActive) {
+                                continuation.resume(null)
+                            }
+                        }
+                    }
+                )
             }
-            .padding(14.dp),
-
-        verticalAlignment =
-            Alignment.CenterVertically
-    ) {
-
-        /*
-         * Marcador visual.
-         */
-        Box(
-            modifier = Modifier
-                .height(12.dp)
-                .fillMaxWidth(0.035f)
-                .background(
-                    color = GuinchouGreen,
-                    shape = CircleShape
-                )
-        )
-
-        Spacer(
-            modifier =
-                Modifier.padding(
-                    horizontal = 6.dp
-                )
-        )
-
-        Column {
-
-            Text(
-                text = title,
-                color = GuinchouWhite,
-                fontSize = 14.sp,
-                fontWeight =
-                    FontWeight.SemiBold
-            )
-
-            Text(
-                text = subtitle,
-                color = GuinchouGray,
-                fontSize = 12.sp
-            )
+        } else {
+            @Suppress("DEPRECATION")
+            withContext(Dispatchers.IO) {
+                geocoder.getFromLocationName(address, 1)
+                    ?.firstOrNull()
+            }
         }
+
+    if (result?.hasLatitude() != true ||
+        result.hasLongitude() != true
+    ) {
+        return null
     }
+
+    return DestinationLocation(
+        latitude = result.latitude,
+        longitude = result.longitude
+    )
 }
