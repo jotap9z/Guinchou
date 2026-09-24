@@ -617,11 +617,15 @@ fun GuinchouNavGraph(
         composable(route = Routes.DESTINATION) {
             DestinationScreen(
                 onContinueClick = {
-                        destinationAddress ->
+                        destinationAddress,
+                        latitude,
+                        longitude ->
 
                     towRequestViewModel
-                        .updateDestinationAddress(
-                            destinationAddress
+                        .updateDestinationLocation(
+                            address = destinationAddress,
+                            latitude = latitude,
+                            longitude = longitude
                         )
 
                     navController.navigate(
