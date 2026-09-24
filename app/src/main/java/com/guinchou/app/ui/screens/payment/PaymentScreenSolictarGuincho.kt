@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,19 +13,29 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,6 +88,10 @@ fun PaymentScreen(
             .navigationBarsPadding()
     ) {
 
+        PaymentHeader(
+            onBackClick = onBackClick
+        )
+
         /*
          * Conteúdo rolável.
          */
@@ -94,7 +109,7 @@ fun PaymentScreen(
         ) {
 
             Text(
-                text = "Pagamento",
+                text = "Como deseja pagar?",
                 color = GuinchouWhite,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
@@ -105,7 +120,7 @@ fun PaymentScreen(
             )
 
             Text(
-                text = "Escolha como deseja pagar pelo atendimento.",
+                text = "Escolha a forma de pagamento para confirmar sua solicitação.",
                 color = GuinchouGray,
                 fontSize = 14.sp
             )
@@ -174,6 +189,7 @@ fun PaymentScreen(
             PaymentOption(
                 title = "PIX",
                 description = "Pagamento instantâneo",
+                iconType = "PIX",
                 selected =
                     selectedPaymentMethod == "PIX",
                 onClick = {
@@ -189,6 +205,7 @@ fun PaymentScreen(
             PaymentOption(
                 title = "Cartão de crédito",
                 description = "Visa, Mastercard e outros",
+                iconType = "CARD",
                 selected =
                     selectedPaymentMethod == "CREDIT_CARD",
                 onClick = {
@@ -205,6 +222,7 @@ fun PaymentScreen(
             PaymentOption(
                 title = "Cartão de débito",
                 description = "Pagamento pelo cartão",
+                iconType = "CARD",
                 selected =
                     selectedPaymentMethod == "DEBIT_CARD",
                 onClick = {
@@ -220,84 +238,90 @@ fun PaymentScreen(
 
             Text(
                 text =
-                    "O pagamento real será processado de forma segura pelo gateway de pagamento quando integrarmos o backend.",
+                    "Seus dados de pagamento serão protegidos durante o processamento da solicitação.",
                 color = GuinchouGray,
                 fontSize = 12.sp
             )
         }
 
-        /*
-         * Botões inferiores.
-         */
-        Row(
+        HorizontalDivider(
+            color = GuinchouBorder
+        )
+
+        Button(
+            onClick = {
+                if (selectedPaymentMethod.isNotBlank()) {
+                    onConfirmPaymentClick(
+                        selectedPaymentMethod
+                    )
+                }
+            },
+            enabled = selectedPaymentMethod.isNotBlank(),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
                     horizontal = 20.dp,
                     vertical = 12.dp
-                ),
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
                 )
+                .height(54.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = GuinchouGreen,
+                contentColor = GuinchouBackground,
+                disabledContainerColor = GuinchouBorder,
+                disabledContentColor = GuinchouGray
+            )
         ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
 
-            OutlinedButton(
-                onClick = onBackClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp),
-                shape = RoundedCornerShape(
-                    14.dp
-                )
-            ) {
+            Spacer(
+                modifier = Modifier.size(8.dp)
+            )
 
-                Text(
-                    text = "Voltar",
-                    color = GuinchouWhite
-                )
-            }
-
-            Button(
-                onClick = {
-
-                    /*
-                     * Só avança se houver
-                     * forma de pagamento selecionada.
-                     */
-                    if (
-                        selectedPaymentMethod
-                            .isNotBlank()
-                    ) {
-
-                        onConfirmPaymentClick(
-                            selectedPaymentMethod
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .weight(1.7f)
-                    .height(54.dp),
-                shape = RoundedCornerShape(
-                    14.dp
-                ),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor =
-                            GuinchouGreen,
-                        contentColor =
-                            GuinchouBackground
-                    )
-            ) {
-
-                Text(
-                    text = "Confirmar pagamento",
-                    fontWeight =
-                        FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
+            Text(
+                text = "Confirmar pagamento",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
         }
+    }
+}
+
+
+@Composable
+private fun PaymentHeader(
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 8.dp,
+                vertical = 7.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onBackClick
+        ) {
+            Icon(
+                imageVector =
+                    Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Voltar",
+                tint = GuinchouWhite
+            )
+        }
+
+        Text(
+            text = "Pagamento",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -309,79 +333,121 @@ fun PaymentScreen(
 private fun PaymentOption(
     title: String,
     description: String,
+    iconType: String,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 color =
                     if (selected) {
-                        GuinchouSurface
+                        GuinchouGreen.copy(
+                            alpha = 0.07f
+                        )
                     } else {
-                        GuinchouBackground
+                        GuinchouSurface
                     },
-                shape = RoundedCornerShape(
-                    14.dp
-                )
+                shape = RoundedCornerShape(16.dp)
             )
             .border(
-                width =
-                    if (selected) {
-                        2.dp
-                    } else {
-                        1.dp
-                    },
+                width = if (selected) 2.dp else 1.dp,
                 color =
                     if (selected) {
                         GuinchouGreen
                     } else {
                         GuinchouBorder
                     },
-                shape = RoundedCornerShape(
-                    14.dp
-                )
+                shape = RoundedCornerShape(16.dp)
             )
             .clickable {
                 onClick()
             }
-            .padding(16.dp)
+            .padding(15.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .background(
+                    color =
+                        if (selected) {
+                            GuinchouGreen.copy(
+                                alpha = 0.12f
+                            )
+                        } else {
+                            GuinchouBackground
+                        },
+                    shape = RoundedCornerShape(13.dp)
+                ),
+            contentAlignment = Alignment.Center
         ) {
+            Icon(
+                imageVector =
+                    if (iconType == "PIX") {
+                        Icons.Default.AccountBalance
+                    } else {
+                        Icons.Default.CreditCard
+                    },
+                contentDescription = null,
+                tint =
+                    if (selected) {
+                        GuinchouGreen
+                    } else {
+                        GuinchouGray
+                    },
+                modifier = Modifier.size(23.dp)
+            )
+        }
 
+        Spacer(
+            modifier = Modifier.size(12.dp)
+        )
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = title,
                 color = GuinchouWhite,
                 fontSize = 15.sp,
-                fontWeight =
-                    FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold
             )
 
-            if (selected) {
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
 
-                Text(
-                    text = "✓",
-                    color = GuinchouGreen,
-                    fontWeight = FontWeight.Bold
+            Text(
+                text = description,
+                color = GuinchouGray,
+                fontSize = 12.sp
+            )
+        }
+
+        if (selected) {
+            Spacer(
+                modifier = Modifier.size(10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(27.dp)
+                    .background(
+                        GuinchouGreen,
+                        RoundedCornerShape(50)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selecionado",
+                    tint = GuinchouBackground,
+                    modifier = Modifier.size(17.dp)
                 )
             }
         }
-
-        Spacer(
-            modifier = Modifier.height(4.dp)
-        )
-
-        Text(
-            text = description,
-            color = GuinchouGray,
-            fontSize = 12.sp
-        )
     }
 }
+

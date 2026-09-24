@@ -3,6 +3,7 @@ package com.guinchou.app.ui.screens.request
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,16 +12,26 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Route
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -103,6 +114,10 @@ fun EstimateScreen(
             .navigationBarsPadding()
     ) {
 
+        EstimateHeader(
+            onBackClick = onBackClick
+        )
+
         /*
          * ===================================
          * CONTEÚDO ROLÁVEL
@@ -124,25 +139,18 @@ fun EstimateScreen(
                 )
         ) {
 
-            /*
-             * Etapa.
-             */
-            Text(
-                text = "5 de 5",
-                color = GuinchouGray,
-                fontSize = 13.sp
-            )
+            EstimateStepIndicator()
 
             Spacer(
                 modifier =
-                    Modifier.height(8.dp)
+                    Modifier.height(20.dp)
             )
 
             /*
              * Título.
              */
             Text(
-                text = "Confira sua estimativa",
+                text = "Confira sua solicitação",
                 color = GuinchouWhite,
                 fontSize = 26.sp,
                 fontWeight =
@@ -156,7 +164,7 @@ fun EstimateScreen(
 
             Text(
                 text =
-                    "Revise os dados antes de continuar.",
+                    "Revise os dados e o valor estimado antes de seguir para o pagamento.",
                 color =
                     GuinchouGray,
                 fontSize = 14.sp
@@ -402,86 +410,127 @@ fun EstimateScreen(
          * BOTÕES
          * ===================================
          */
-        Row(
+        HorizontalDivider(
+            color = GuinchouBorder
+        )
 
+        Button(
+            onClick = onContinueClick,
             modifier = Modifier
                 .fillMaxWidth()
-
                 .padding(
                     horizontal = 20.dp,
                     vertical = 12.dp
-                ),
-
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
+                )
+                .height(54.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = GuinchouGreen,
+                    contentColor = GuinchouBackground
                 )
         ) {
+            Icon(
+                imageVector = Icons.Default.CreditCard,
+                contentDescription = null,
+                modifier = Modifier.size(19.dp)
+            )
 
-            /*
-             * VOLTAR
-             */
-            OutlinedButton(
+            Spacer(
+                modifier = Modifier.size(8.dp)
+            )
 
-                onClick =
-                    onBackClick,
-
-                modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
-            ) {
-
-                Text(
-                    text = "Voltar",
-                    color =
-                        GuinchouWhite
-                )
-            }
+            Text(
+                text = "Continuar para pagamento",
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
+        }
+    }
+}
 
 
-            /*
-             * PAGAMENTO
-             */
-            Button(
+/**
+ * Cabeçalho da última etapa.
+ */
+@Composable
+private fun EstimateHeader(
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 8.dp,
+                vertical = 7.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onBackClick
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Voltar",
+                tint = GuinchouWhite
+            )
+        }
 
-                onClick =
-                    onContinueClick,
+        Text(
+            text = "Estimativa",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
-                modifier = Modifier
-                    .weight(1.7f)
-                    .height(54.dp),
 
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    ),
+/**
+ * Etapa 5 de 5.
+ */
+@Composable
+private fun EstimateStepIndicator() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "ETAPA 5 DE 5",
+                color = GuinchouGreen,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                colors =
-                    ButtonDefaults
-                        .buttonColors(
+            Spacer(
+                modifier = Modifier.weight(1f)
+            )
 
-                            containerColor =
-                                GuinchouGreen,
+            Text(
+                text = "Estimativa",
+                color = GuinchouGray,
+                fontSize = 11.sp
+            )
+        }
 
-                            contentColor =
-                                GuinchouBackground
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            repeat(5) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(3.dp)
+                        .background(
+                            color = GuinchouGreen,
+                            shape = RoundedCornerShape(50)
                         )
-            ) {
-
-                Text(
-
-                    text =
-                        "Continuar para pagamento",
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    fontSize = 13.sp
                 )
             }
         }

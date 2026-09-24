@@ -2,6 +2,7 @@ package com.guinchou.app.ui.screens.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +18,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -28,6 +34,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -41,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -77,6 +85,9 @@ fun ProfileScreen(
     openVehicles: Boolean = false,
     openHistory: Boolean = false,
     onBackClick: () -> Unit = {},
+    onHomeClick: () -> Unit = {},
+    onCallsClick: () -> Unit = {},
+    onPaymentsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
 
@@ -407,7 +418,7 @@ private fun ProfileMainPage(
 
         ProfileMenuItem(
             icon = "🔔",
-            title = "Notificações",
+            title = "com/guinchou/app/ui/screens/Notificações",
             description = "Gerencie seus avisos",
             onClick = onNotificationsClick
         )
@@ -1241,7 +1252,7 @@ private fun NotificationsPage(
     }
 
     PageContainer(
-        title = "com/guinchou/app/ui/screens/Notificações",
+        title = "Notificações",
         onBackClick = onBackClick
     ) {
 
@@ -2297,3 +2308,91 @@ private fun isValidEmail(
 
     return true
 }
+
+
+
+@Composable
+private fun ProfileMainBottomBar(
+    onHomeClick: () -> Unit,
+    onCallsClick: () -> Unit,
+    onPaymentsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(GuinchouBackground)
+            .navigationBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ProfileBottomItem(
+            icon = Icons.Default.Home,
+            text = "Início",
+            onClick = onHomeClick
+        )
+
+        ProfileBottomItem(
+            icon = Icons.Default.Build,
+            text = "Chamados",
+            onClick = onCallsClick
+        )
+
+        ProfileBottomItem(
+            icon = Icons.Default.CreditCard,
+            text = "Pagamentos",
+            onClick = onPaymentsClick
+        )
+
+        ProfileBottomItem(
+            icon = Icons.Default.Person,
+            text = "Perfil",
+            selected = true
+        )
+    }
+}
+
+@Composable
+private fun ProfileBottomItem(
+    icon: ImageVector,
+    text: String,
+    selected: Boolean = false,
+    onClick: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = if (selected) GuinchouGreen else GuinchouGray,
+            modifier = Modifier.size(22.dp)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = text,
+            color = if (selected) GuinchouGreen else GuinchouGray,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        Box(
+            modifier = Modifier
+                .size(width = 18.dp, height = 2.dp)
+                .background(
+                    color = if (selected) GuinchouGreen else Color.Transparent,
+                    shape = RoundedCornerShape(50)
+                )
+        )
+    }
+}
+

@@ -28,9 +28,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -461,6 +468,9 @@ fun PickupScreen(
             .navigationBarsPadding()
     ) {
 
+        PickupHeader(
+            onBackClick = onBackClick
+        )
 
         /*
          * =========================================
@@ -483,18 +493,10 @@ fun PickupScreen(
         ) {
 
 
-            Text(
-                text = "1 de 5",
-                color = GuinchouGray,
-                fontSize = 13.sp
-            )
-
+            PickupStepIndicator()
 
             Spacer(
-                modifier =
-                    Modifier.height(
-                        8.dp
-                    )
+                modifier = Modifier.height(20.dp)
             )
 
 
@@ -520,7 +522,7 @@ fun PickupScreen(
 
             Text(
                 text =
-                    "Informe o endereço ou utilize sua localização atual.",
+                    "Informe onde o veículo está parado ou use o GPS para localizar automaticamente.",
                 color =
                     GuinchouGray,
                 fontSize =
@@ -719,13 +721,21 @@ fun PickupScreen(
 
                 } else {
 
+                    Icon(
+                        imageVector = Icons.Default.MyLocation,
+                        contentDescription = null,
+                        tint = GuinchouGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.size(9.dp)
+                    )
+
                     Text(
-                        text =
-                            "◎  Usar minha localização atual",
-                        color =
-                            GuinchouWhite,
-                        fontWeight =
-                            FontWeight.Medium
+                        text = "Usar minha localização atual",
+                        color = GuinchouWhite,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -985,7 +995,7 @@ fun PickupScreen(
 
                     Text(
                         text =
-                            "A visualização real será adicionada com a integração do Google Maps.",
+                            "Confirme o endereço acima para continuar com a solicitação.",
                         color =
                             GuinchouGray,
                         fontSize =
@@ -1012,131 +1022,125 @@ fun PickupScreen(
          * =========================================
          */
 
-        Row(
+        Button(
+            onClick = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
 
+                if (pickupAddress.isBlank()) {
+                    errorMessage = "Informe onde o veículo está."
+                    return@Button
+                }
+
+                onContinueClick(
+                    pickupAddress.trim(),
+                    latitude,
+                    longitude,
+                    locationSource
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
-                    horizontal =
-                        20.dp,
-                    vertical =
-                        12.dp
-                ),
-
-            horizontalArrangement =
-                Arrangement.spacedBy(
-                    12.dp
+                    horizontal = 20.dp,
+                    vertical = 12.dp
                 )
+                .height(54.dp),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = GuinchouGreen,
+                contentColor = GuinchouBackground
+            )
         ) {
+            Text(
+                text = "Confirmar localização",
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
 
 
-            /*
-             * VOLTAR
-             */
-            OutlinedButton(
+@Composable
+private fun PickupHeader(
+    onBackClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = 8.dp,
+                vertical = 7.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(
+            onClick = onBackClick
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Voltar",
+                tint = GuinchouWhite
+            )
+        }
 
-                onClick = {
-
-                    focusManager
-                        .clearFocus()
-
-                    keyboardController
-                        ?.hide()
-
-                    onBackClick()
-                },
-
-                modifier = Modifier
-                    .weight(
-                        1f
-                    )
-                    .height(
-                        54.dp
-                    ),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    )
-            ) {
-
-                Text(
-                    text =
-                        "Voltar",
-                    color =
-                        GuinchouWhite
-                )
-            }
+        Text(
+            text = "Localização",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
 
 
-            /*
-             * CONTINUAR
-             */
-            Button(
+@Composable
+private fun PickupStepIndicator() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "ETAPA 1 DE 5",
+                color = GuinchouGreen,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
 
-                onClick = {
+            Spacer(
+                modifier = Modifier.weight(1f)
+            )
 
-                    focusManager
-                        .clearFocus()
+            Text(
+                text = "Localização",
+                color = GuinchouGray,
+                fontSize = 11.sp
+            )
+        }
 
-                    keyboardController
-                        ?.hide()
+        Spacer(
+            modifier = Modifier.height(8.dp)
+        )
 
-
-                    if (
-                        pickupAddress
-                            .isBlank()
-                    ) {
-
-                        errorMessage =
-                            "Informe onde o veículo está."
-
-                        return@Button
-                    }
-
-
-                    onContinueClick(
-
-                        pickupAddress.trim(),
-
-                        latitude,
-
-                        longitude,
-
-                        locationSource
-                    )
-                },
-
-                modifier = Modifier
-                    .weight(
-                        1.4f
-                    )
-                    .height(
-                        54.dp
-                    ),
-
-                shape =
-                    RoundedCornerShape(
-                        14.dp
-                    ),
-
-                colors =
-                    ButtonDefaults
-                        .buttonColors(
-
-                            containerColor =
-                                GuinchouGreen,
-
-                            contentColor =
-                                GuinchouBackground
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            repeat(5) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(3.dp)
+                        .background(
+                            color =
+                                if (index == 0) {
+                                    GuinchouGreen
+                                } else {
+                                    GuinchouBorder
+                                },
+                            shape = RoundedCornerShape(50)
                         )
-            ) {
-
-                Text(
-                    text =
-                        "Continuar",
-                    fontWeight =
-                        FontWeight.Bold
                 )
             }
         }

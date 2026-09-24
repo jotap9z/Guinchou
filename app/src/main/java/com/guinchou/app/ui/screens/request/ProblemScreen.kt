@@ -26,8 +26,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -232,14 +240,10 @@ fun ProblemScreen(
                 )
         ) {
 
-            Text(
-                text = "4 de 5",
-                color = GuinchouGray,
-                fontSize = 13.sp
-            )
+            ProblemStepIndicator()
 
             Spacer(
-                modifier = Modifier.height(8.dp)
+                modifier = Modifier.height(20.dp)
             )
 
             Text(
@@ -653,78 +657,194 @@ fun ProblemScreen(
 }
 
 @Composable
+private fun ProblemStepIndicator() {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "ETAPA 4 DE 5",
+                color = GuinchouGreen,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Text(
+                text = "Problema",
+                color = GuinchouGray,
+                fontSize = 11.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            repeat(5) { index ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(3.dp)
+                        .background(
+                            color = if (index <= 3) {
+                                GuinchouGreen
+                            } else {
+                                GuinchouBorder
+                            },
+                            shape = RoundedCornerShape(50)
+                        )
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
 private fun ProblemTypeCard(
     title: String,
     description: String,
     selected: Boolean,
     onClick: () -> Unit
 ) {
+    val isAccident =
+        title.contains(
+            "Acidente",
+            ignoreCase = true
+        )
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = GuinchouSurface,
-                shape = RoundedCornerShape(16.dp)
+                color =
+                    if (selected) {
+                        GuinchouGreen.copy(
+                            alpha = 0.07f
+                        )
+                    } else {
+                        GuinchouSurface
+                    },
+                shape =
+                    RoundedCornerShape(16.dp)
             )
             .border(
                 width =
-                    if (selected) {
-                        2.dp
-                    } else {
-                        1.dp
-                    },
+                    if (selected) 2.dp else 1.dp,
                 color =
                     if (selected) {
                         GuinchouGreen
                     } else {
                         GuinchouBorder
                     },
-                shape = RoundedCornerShape(16.dp)
+                shape =
+                    RoundedCornerShape(16.dp)
             )
             .clickable {
                 onClick()
             }
-            .padding(16.dp)
+            .padding(15.dp),
+        verticalAlignment =
+            Alignment.CenterVertically
     ) {
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                Arrangement.SpaceBetween,
-            verticalAlignment =
-                Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .size(46.dp)
+                .background(
+                    color =
+                        if (selected) {
+                            GuinchouGreen.copy(
+                                alpha = 0.12f
+                            )
+                        } else {
+                            GuinchouBackground
+                        },
+                    shape =
+                        RoundedCornerShape(13.dp)
+                ),
+            contentAlignment =
+                Alignment.Center
         ) {
-
-            Text(
-                text = title,
-                color = GuinchouWhite,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+            Icon(
+                imageVector =
+                    if (isAccident) {
+                        Icons.Default.Warning
+                    } else {
+                        Icons.Default.Build
+                    },
+                contentDescription = null,
+                tint =
+                    if (selected) {
+                        GuinchouGreen
+                    } else {
+                        GuinchouGray
+                    },
+                modifier =
+                    Modifier.size(23.dp)
             )
-
-            if (selected) {
-
-                Text(
-                    text = "✓",
-                    color = GuinchouGreen,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
         }
 
         Spacer(
-            modifier = Modifier.height(5.dp)
+            modifier = Modifier.size(12.dp)
         )
 
-        Text(
-            text = description,
-            color = GuinchouGray,
-            fontSize = 13.sp
-        )
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = title,
+                color = GuinchouWhite,
+                fontSize = 15.sp,
+                fontWeight =
+                    FontWeight.SemiBold
+            )
+
+            Spacer(
+                modifier = Modifier.height(4.dp)
+            )
+
+            Text(
+                text = description,
+                color = GuinchouGray,
+                fontSize = 11.sp
+            )
+        }
+
+        if (selected) {
+            Spacer(
+                modifier = Modifier.size(10.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(27.dp)
+                    .background(
+                        GuinchouGreen,
+                        CircleShape
+                    ),
+                contentAlignment =
+                    Alignment.Center
+            ) {
+                Icon(
+                    imageVector =
+                        Icons.Default.Check,
+                    contentDescription =
+                        "Selecionado",
+                    tint =
+                        GuinchouBackground,
+                    modifier =
+                        Modifier.size(17.dp)
+                )
+            }
+        }
     }
 }
+
 
 @Composable
 private fun ProblemOptionCard(

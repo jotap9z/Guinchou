@@ -18,8 +18,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -177,6 +184,41 @@ fun TrackingScreen(
                     )
             ) {
 
+                Row(
+                    modifier = Modifier
+                        .background(
+                            GuinchouGreen.copy(alpha = 0.10f),
+                            RoundedCornerShape(50)
+                        )
+                        .border(
+                            1.dp,
+                            GuinchouGreen.copy(alpha = 0.28f),
+                            RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(
+                                GuinchouGreen,
+                                CircleShape
+                            )
+                    )
+
+                    Spacer(modifier = Modifier.size(7.dp))
+
+                    Text(
+                        text = "ATENDIMENTO EM ANDAMENTO",
+                        color = GuinchouGreen,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Text(
                     text = statusTitle,
                     color = GuinchouWhite,
@@ -206,12 +248,18 @@ fun TrackingScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(270.dp)
+                    .padding(horizontal = 20.dp)
+                    .height(250.dp)
                     .background(
-                        GuinchouSurface
+                        GuinchouSurface,
+                        RoundedCornerShape(20.dp)
+                    )
+                    .border(
+                        1.dp,
+                        GuinchouBorder,
+                        RoundedCornerShape(20.dp)
                     ),
-                contentAlignment =
-                    Alignment.Center
+                contentAlignment = Alignment.Center
             ) {
 
                 Column(
@@ -221,14 +269,25 @@ fun TrackingScreen(
 
                     Box(
                         modifier = Modifier
-                            .size(18.dp)
+                            .size(58.dp)
                             .background(
-                                color =
-                                    GuinchouGreen,
-                                shape =
-                                    CircleShape
+                                GuinchouGreen.copy(alpha = 0.12f),
+                                CircleShape
                             )
-                    )
+                            .border(
+                                1.dp,
+                                GuinchouGreen.copy(alpha = 0.35f),
+                                CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            tint = GuinchouGreen,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
 
                     Spacer(
                         modifier =
@@ -273,7 +332,7 @@ fun TrackingScreen(
 
                     Text(
                         text =
-                            "A localização em tempo real será exibida aqui.",
+                            "Acompanhe aqui a movimentação do guincheiro durante o atendimento.",
                         color =
                             GuinchouGray,
                         fontSize =
@@ -560,12 +619,17 @@ fun TrackingScreen(
                                         GuinchouBackground
                                 )
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(modifier = Modifier.size(8.dp))
 
                         Text(
-                            text =
-                                "Mensagem",
-                            fontWeight =
-                                FontWeight.Bold
+                            text = "Mensagem",
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
@@ -581,14 +645,19 @@ fun TrackingScreen(
                                 14.dp
                             )
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Call,
+                            contentDescription = null,
+                            tint = GuinchouWhite,
+                            modifier = Modifier.size(18.dp)
+                        )
+
+                        Spacer(modifier = Modifier.size(8.dp))
 
                         Text(
-                            text =
-                                "Ligar",
-                            color =
-                                GuinchouWhite,
-                            fontWeight =
-                                FontWeight.SemiBold
+                            text = "Ligar",
+                            color = GuinchouWhite,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -977,14 +1046,11 @@ private fun StatusCard(
                 Alignment.Center
         ) {
 
-            Text(
-                text = "✓",
-                color =
-                    GuinchouBackground,
-                fontSize =
-                    19.sp,
-                fontWeight =
-                    FontWeight.Bold
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = GuinchouBackground,
+                modifier = Modifier.size(22.dp)
             )
         }
     }
