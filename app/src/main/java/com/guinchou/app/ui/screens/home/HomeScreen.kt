@@ -83,6 +83,8 @@ fun HomeScreen(
     onRequestTowClick: () -> Unit,
     onNotificationClick: () -> Unit = {},
     onCallsClick: () -> Unit = {},
+    onVehiclesClick: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
     onPaymentsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
@@ -413,7 +415,7 @@ fun HomeScreen(
                             symbol = "🚗",
                             title = "Veículos",
                             description = "Gerencie seus veículos",
-                            onClick = onProfileClick
+                            onClick = onVehiclesClick
                         )
 
                         CustomerQuickCard(
@@ -421,7 +423,7 @@ fun HomeScreen(
                             symbol = "🧾",
                             title = "Histórico",
                             description = "Veja seus atendimentos",
-                            onClick = onProfileClick
+                            onClick = onHistoryClick
                         )
                     }
 
@@ -927,3 +929,4 @@ private fun BottomItem(
         )
     }
 }
+

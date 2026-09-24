@@ -74,12 +74,20 @@ private data class ProfileVehicle(
 fun ProfileScreen(
     userName: String = "João da Silva",
     userEmail: String = "joao@email.com",
+    openVehicles: Boolean = false,
+    openHistory: Boolean = false,
     onBackClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
 
-    var currentPage by remember {
-        mutableStateOf(ProfilePage.MAIN)
+    var currentPage by remember(openVehicles, openHistory) {
+        mutableStateOf(
+            when {
+                openVehicles -> ProfilePage.VEHICLES
+                openHistory -> ProfilePage.HISTORY
+                else -> ProfilePage.MAIN
+            }
+        )
     }
 
     var currentName by remember {
@@ -399,7 +407,7 @@ private fun ProfileMainPage(
 
         ProfileMenuItem(
             icon = "🔔",
-            title = "com/guinchou/app/ui/screens/Notificações",
+            title = "Notificações",
             description = "Gerencie seus avisos",
             onClick = onNotificationsClick
         )

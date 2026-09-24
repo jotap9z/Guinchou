@@ -23,12 +23,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1063,7 +1063,7 @@ private fun PaymentsBottomBar(
             onClick = onHomeClick
         )
         PaymentBottomItem(
-            icon = Icons.Default.ReceiptLong,
+            icon = Icons.Default.Build,
             text = "Chamados",
             onClick = onCallsClick
         )
@@ -1150,3 +1150,4 @@ private fun detectCardBrand(number: String): String =
         number.startsWith("34") || number.startsWith("37") -> "American Express"
         else -> "Cartão"
     }
+
