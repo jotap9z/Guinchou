@@ -14,9 +14,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -253,7 +258,7 @@ fun PartnerProfileScreen(
             Spacer(Modifier.height(10.dp))
 
             ProfileMenuCard(
-                icon = Icons.Default.HelpOutline,
+                icon = Icons.AutoMirrored.Filled.HelpOutline,
                 title = "Ajuda e suporte",
                 subtitle = "Central de ajuda e atendimento Guinchou",
                 onClick = {
@@ -336,7 +341,7 @@ private fun PartnerProfileHeader(
 
             Icon(
                 imageVector = Icons.Default.Notifications,
-                contentDescription = "Notificações",
+                contentDescription = "com/guinchou/app/ui/screens/Notificações",
                 tint = GuinchouWhite,
                 modifier = Modifier.size(20.dp)
             )
@@ -852,7 +857,7 @@ private fun LogoutButton(
     ) {
 
         Icon(
-            imageVector = Icons.Default.Logout,
+            imageVector = Icons.AutoMirrored.Filled.Logout,
             contentDescription = null,
             tint = ProfileDanger,
             modifier = Modifier.size(18.dp)
@@ -1023,7 +1028,7 @@ private fun ProfileInternalScreen(
             ) {
 
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Voltar",
                     tint = GuinchouWhite,
                     modifier = Modifier.size(20.dp)
@@ -1705,7 +1710,7 @@ private fun SettingsSection(
             Spacer(Modifier.height(14.dp))
         }
 
-        ProfileSectionTitle("Notificações", "Escolha quais alertas deseja receber.")
+        ProfileSectionTitle("com/guinchou/app/ui/screens/Notificações", "Escolha quais alertas deseja receber.")
         Spacer(Modifier.height(14.dp))
         ProfileSwitchCard(Icons.Default.NotificationsActive, "Novos chamados",
             "Receber alerta quando houver um novo chamado próximo.", callNotifications) { callNotifications = it }
@@ -1996,7 +2001,7 @@ private fun SupportSection(
         Spacer(Modifier.height(25.dp))
         ProfileSectionTitle("Ainda precisa de ajuda?", "Entre em contato com nossa equipe.")
         Spacer(Modifier.height(14.dp))
-        ProfileActionButton("Falar com o suporte", Icons.Default.Chat) { contactDialog = true }
+        ProfileActionButton("Falar com o suporte", Icons.AutoMirrored.Filled.Chat) { contactDialog = true }
         Spacer(Modifier.height(30.dp))
     }
 }
@@ -2122,7 +2127,7 @@ private fun ProfileSelectField(
             readOnly = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             label = { Text(label) },
             placeholder = { Text(placeholder) },
             leadingIcon = {

@@ -16,7 +16,9 @@ import com.guinchou.app.ui.screens.auth.CreateAccountScreen
 import com.guinchou.app.ui.screens.auth.ForgotPasswordScreen
 import com.guinchou.app.ui.screens.auth.LoginScreen
 import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
+import com.guinchou.app.ui.screens.calls.CustomerCallsScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
+import com.guinchou.app.ui.screens.notifications.CustomerNotificationsScreen
 import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
 import com.guinchou.app.ui.screens.partner.PartnerCallsScreen
 import com.guinchou.app.ui.screens.partner.PartnerEarningsScreen
@@ -25,6 +27,7 @@ import com.guinchou.app.ui.screens.partner.PartnerNotificationsScreen
 import com.guinchou.app.ui.screens.partner.PartnerProfileScreen
 import com.guinchou.app.ui.screens.partner.PartnerTypeScreen
 import com.guinchou.app.ui.screens.payment.PaymentScreen
+import com.guinchou.app.ui.screens.payment.PaymentsScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
 import com.guinchou.app.ui.screens.request.CompletedScreen
 import com.guinchou.app.ui.screens.request.DestinationScreen
@@ -44,12 +47,15 @@ private const val PARTNER_EARNINGS_ROUTE = "partner_earnings"
 private const val PARTNER_EARNINGS_HISTORY_ROUTE = "partner_earnings_history"
 private const val PARTNER_NOTIFICATIONS_ROUTE = "partner_notifications"
 private const val PARTNER_PROFILE_ROUTE = "partner_profile"
+private const val CUSTOMER_PAYMENTS_ROUTE = "customer_payments"
+private const val CUSTOMER_CALLS_ROUTE = "customer_calls"
+private const val CUSTOMER_NOTIFICATIONS_ROUTE = "customer_notifications"
 
 @Composable
 fun GuinchouNavGraph(
     navController: NavHostController,
     towRequestViewModel: TowRequestViewModel,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
 ) {
     val customerHomeViewModel: CustomerHomeViewModel = viewModel()
     var recoveryEmail by remember { mutableStateOf("") }
@@ -536,12 +542,149 @@ fun GuinchouNavGraph(
                     )
                 },
 
-                onNotificationClick = {},
+                onNotificationClick = {
+                    navController.navigate(
+                        CUSTOMER_NOTIFICATIONS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onCallsClick = {
+                    navController.navigate(
+                        CUSTOMER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onPaymentsClick = {
+                    navController.navigate(
+                        CUSTOMER_PAYMENTS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
 
                 onProfileClick = {
                     navController.navigate(
                         Routes.PROFILE
                     )
+                }
+            )
+        }
+
+        /*
+         * NOTIFICAÇÕES DO CLIENTE
+         */
+
+        composable(route = CUSTOMER_NOTIFICATIONS_ROUTE) {
+            CustomerNotificationsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onCallClick = {
+                    navController.navigate(
+                        CUSTOMER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onPaymentClick = {
+                    navController.navigate(
+                        CUSTOMER_PAYMENTS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        /*
+         * CHAMADOS DO CLIENTE
+         */
+
+        composable(route = CUSTOMER_CALLS_ROUTE) {
+            CustomerCallsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onRequestTowClick = {
+                    towRequestViewModel.clearRequest()
+                    navController.navigate(
+                        Routes.PICKUP
+                    )
+                },
+
+                onTrackCallClick = {
+                    navController.navigate(
+                        Routes.TRACKING
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onHomeClick = {
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onPaymentsClick = {
+                    navController.navigate(
+                        CUSTOMER_PAYMENTS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onProfileClick = {
+                    navController.navigate(
+                        Routes.PROFILE
+                    ) {
+                        launchSingleTop = true
+                    }
+                }
+            )
+        }
+
+        /*
+         * PAGAMENTOS / CARTEIRA DO CLIENTE
+         */
+
+        composable(route = CUSTOMER_PAYMENTS_ROUTE) {
+            PaymentsScreen(
+                onBackClick = {
+                    navController.popBackStack()
+                },
+
+                onHomeClick = {
+                    navController.navigate(
+                        Routes.HOME
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onCallsClick = {
+                    navController.navigate(
+                        CUSTOMER_CALLS_ROUTE
+                    ) {
+                        launchSingleTop = true
+                    }
+                },
+
+                onProfileClick = {
+                    navController.navigate(
+                        Routes.PROFILE
+                    ) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -584,11 +727,10 @@ fun GuinchouNavGraph(
                         latitude,
                         longitude,
                         source ->
-
                     if (
-                        source == "GPS" &&
-                        latitude != null &&
-                        longitude != null
+                        (source == "GPS") &&
+                        (latitude != null) &&
+                        (longitude != null)
                     ) {
                         towRequestViewModel
                             .updatePickupFromGps(
@@ -714,9 +856,9 @@ fun GuinchouNavGraph(
                         )
 
                     if (
-                        problemType == "ACCIDENT" &&
-                        !towRequestViewModel
-                            .hasRequiredAccidentPhotos()
+                        (problemType == "ACCIDENT") &&
+                        (!towRequestViewModel
+                            .hasRequiredAccidentPhotos())
                     ) {
                         return@ProblemScreen
                     }

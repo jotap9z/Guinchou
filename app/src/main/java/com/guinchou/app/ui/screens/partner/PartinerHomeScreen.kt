@@ -217,7 +217,7 @@ private fun BrandHeader(onNotificationsClick: () -> Unit) {
         ) {
             Icon(
                 imageVector = Icons.Default.Notifications,
-                contentDescription = "Notificações",
+                contentDescription = "com/guinchou/app/ui/screens/Notificações",
                 tint = GuinchouWhite,
                 modifier = Modifier.size(21.dp)
             )

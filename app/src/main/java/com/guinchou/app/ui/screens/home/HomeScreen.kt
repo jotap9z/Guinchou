@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,6 +28,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,7 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,6 +60,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.android.gms.location.LocationServices
+import com.guinchou.app.R
 import com.guinchou.app.ui.theme.GuinchouBackground
 import com.guinchou.app.ui.theme.GuinchouBorder
 import com.guinchou.app.ui.theme.GuinchouGray
@@ -71,6 +82,8 @@ fun HomeScreen(
     homeState: CustomerHomeUiState,
     onRequestTowClick: () -> Unit,
     onNotificationClick: () -> Unit = {},
+    onCallsClick: () -> Unit = {},
+    onPaymentsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
     Box(
@@ -82,7 +95,10 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize()
         ) {
             val compactHeight = maxHeight < 700.dp
-            val mapHeight = if (compactHeight) 200.dp else 260.dp
+            val mapHeight = if (compactHeight) 185.dp else 225.dp
+            val customerName = homeState.home?.name ?: "Cliente"
+            val firstName = customerName.trim().substringBefore(" ").ifBlank { "Cliente" }
+            val completedServices = homeState.home?.completedServices ?: 0
 
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -97,94 +113,72 @@ fun HomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(
-                                horizontal = 20.dp,
-                                vertical = 14.dp
-                            ),
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = "GUINCHOU",
-                                color = GuinchouWhite,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(
-                                modifier = Modifier.height(2.dp)
-                            )
-
-                            Text(
-                                text = "Seu socorro chegou.",
-                                color = GuinchouGray,
-                                fontSize = 13.sp
-                            )
-
-                            val greeting = when {
-                                homeState.loading ->
-                                    "Carregando seus dados..."
-
-                                homeState.error != null ->
-                                    homeState.error
-
-                                else ->
-                                    "Olá, ${homeState.home?.name ?: "Cliente"} · " +
-                                            "${homeState.home?.completedServices ?: 0} " +
-                                            "serviço(s) concluído(s)"
-                            }
-
-                            Text(
-                                text = greeting,
-                                color = GuinchouGray,
-                                fontSize = 12.sp
-                            )
-                        }
+                        Image(
+                            painter = painterResource(id = R.drawable.logo_guinchou),
+                            contentDescription = "Logo Guinchou",
+                            modifier = Modifier
+                                .height(40.dp)
+                                .weight(1f),
+                            contentScale = ContentScale.Fit,
+                            alignment = Alignment.CenterStart
+                        )
 
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
+                                .background(
+                                    color = GuinchouSurface,
+                                    shape = CircleShape
+                                )
                                 .border(
                                     width = 1.dp,
                                     color = GuinchouBorder,
                                     shape = CircleShape
                                 )
-                                .clickable(
-                                    onClick = onNotificationClick
-                                ),
+                                .clickable(onClick = onNotificationClick),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "!",
                                 color = GuinchouGreen,
-                                fontWeight = FontWeight.Bold
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(mapHeight)
-                            .padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(GuinchouSurface)
-                            .border(
-                                width = 1.dp,
-                                color = GuinchouBorder,
-                                shape = RoundedCornerShape(20.dp)
-                            )
+                    Column(
+                        modifier = Modifier.padding(horizontal = 18.dp)
                     ) {
-                        CustomerMap(
-                            modifier = Modifier.fillMaxSize()
+                        Text(
+                            text = if (homeState.loading) {
+                                "Carregando..."
+                            } else {
+                                "Olá, $firstName"
+                            },
+                            color = GuinchouWhite,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Spacer(Modifier.height(3.dp))
+
+                        Text(
+                            text = when {
+                                homeState.error != null -> homeState.error
+                                else -> "Onde podemos te ajudar hoje?"
+                            },
+                            color = GuinchouGray,
+                            fontSize = 13.sp
                         )
                     }
 
                     Spacer(
                         modifier = Modifier.height(
-                            if (compactHeight) 12.dp else 18.dp
+                            if (compactHeight) 14.dp else 18.dp
                         )
                     )
 
@@ -194,98 +188,93 @@ fun HomeScreen(
                             .padding(horizontal = 16.dp)
                             .background(
                                 color = GuinchouSurface,
-                                shape = RoundedCornerShape(20.dp)
+                                shape = RoundedCornerShape(22.dp)
                             )
                             .border(
                                 width = 1.dp,
                                 color = GuinchouBorder,
-                                shape = RoundedCornerShape(20.dp)
+                                shape = RoundedCornerShape(22.dp)
                             )
-                            .padding(
-                                if (compactHeight) 16.dp else 20.dp
-                            )
+                            .padding(18.dp)
                     ) {
-                        Text(
-                            text = "Precisa de um guincho?",
-                            color = GuinchouWhite,
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text = "Solicite atendimento para o seu veículo.",
-                            color = GuinchouGray,
-                            fontSize = 13.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(18.dp)
-                        )
-
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    color = GuinchouBackground,
-                                    shape = RoundedCornerShape(12.dp)
-                                )
-                                .padding(14.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(12.dp)
+                                    .size(46.dp)
                                     .background(
-                                        color = GuinchouGreen,
-                                        shape = CircleShape
-                                    )
-                            )
-
-                            Spacer(
-                                modifier = Modifier.size(12.dp)
-                            )
-
-                            Column {
+                                        color = GuinchouGreen.copy(alpha = 0.14f),
+                                        shape = RoundedCornerShape(14.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Text(
-                                    text = "Localização atual",
+                                    text = "↗",
+                                    color = GuinchouGreen,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Spacer(Modifier.size(14.dp))
+
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Precisa de um guincho?",
                                     color = GuinchouWhite,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontSize = 19.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
 
-                                Spacer(
-                                    modifier = Modifier.height(2.dp)
-                                )
+                                Spacer(Modifier.height(3.dp))
 
                                 Text(
-                                    text = "Confira sua posição no mapa acima",
+                                    text = "Solicite atendimento de forma rápida e segura.",
                                     color = GuinchouGray,
                                     fontSize = 12.sp
                                 )
                             }
                         }
 
-                        Spacer(
-                            modifier = Modifier.height(18.dp)
-                        )
-
                         if (homeState.home?.activeRequestId != null) {
-                            val status = homeState.home.activeRequestStatus
-                                ?: "Em aberto"
+                            Spacer(Modifier.height(16.dp))
 
-                            Text(
-                                text = "Atendimento em andamento: $status",
-                                color = GuinchouGreen,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(
-                                    bottom = 10.dp
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        color = GuinchouGreen.copy(alpha = 0.08f),
+                                        shape = RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .background(
+                                            GuinchouGreen,
+                                            CircleShape
+                                        )
                                 )
-                            )
+
+                                Spacer(Modifier.size(10.dp))
+
+                                Text(
+                                    text = "Atendimento em andamento: " +
+                                            (homeState.home.activeRequestStatus ?: "Em aberto"),
+                                    color = GuinchouGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
+
+                        Spacer(Modifier.height(18.dp))
 
                         Button(
                             onClick = onRequestTowClick,
@@ -307,47 +296,301 @@ fun HomeScreen(
                         }
                     }
 
-                    Spacer(
-                        modifier = Modifier.height(16.dp)
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CustomerSummaryCard(
+                            modifier = Modifier.weight(1f),
+                            value = completedServices.toString(),
+                            label = "Serviços",
+                            detail = "concluídos"
+                        )
+
+                        CustomerSummaryCard(
+                            modifier = Modifier.weight(1f),
+                            value = if (homeState.home?.activeRequestId != null) "1" else "0",
+                            label = "Em andamento",
+                            detail = "atendimento"
+                        )
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sua localização",
+                            color = GuinchouWhite,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Text(
+                            text = "GPS ativo",
+                            color = GuinchouGreen,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(mapHeight)
+                            .padding(horizontal = 16.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(GuinchouSurface)
+                            .border(
+                                width = 1.dp,
+                                color = GuinchouBorder,
+                                shape = RoundedCornerShape(20.dp)
+                            )
+                    ) {
+                        CustomerMap(
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(12.dp)
+                                .background(
+                                    color = GuinchouBackground.copy(alpha = 0.92f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 11.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(9.dp)
+                                    .background(GuinchouGreen, CircleShape)
+                            )
+
+                            Spacer(Modifier.size(8.dp))
+
+                            Text(
+                                text = "Localização atual",
+                                color = GuinchouWhite,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Text(
+                        text = "Acesso rápido",
+                        color = GuinchouWhite,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 18.dp)
                     )
+
+                    Spacer(Modifier.height(10.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CustomerQuickCard(
+                            modifier = Modifier.weight(1f),
+                            symbol = "🚗",
+                            title = "Veículos",
+                            description = "Gerencie seus veículos",
+                            onClick = onProfileClick
+                        )
+
+                        CustomerQuickCard(
+                            modifier = Modifier.weight(1f),
+                            symbol = "🧾",
+                            title = "Histórico",
+                            description = "Veja seus atendimentos",
+                            onClick = onProfileClick
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CustomerQuickCard(
+                            modifier = Modifier.weight(1f),
+                            symbol = "💳",
+                            title = "Pagamentos",
+                            description = "Formas de pagamento",
+                            onClick = onPaymentsClick
+                        )
+
+                        CustomerQuickCard(
+                            modifier = Modifier.weight(1f),
+                            symbol = "👤",
+                            title = "Meu perfil",
+                            description = "Conta e configurações",
+                            onClick = onProfileClick
+                        )
+                    }
+
+                    Spacer(Modifier.height(20.dp))
                 }
 
-                HorizontalDivider(
-                    color = GuinchouBorder
-                )
+                HorizontalDivider(color = GuinchouBorder)
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(GuinchouBackground)
                         .navigationBarsPadding()
-                        .padding(
-                            horizontal = 8.dp,
-                            vertical = 8.dp
-                        ),
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceAround,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     BottomItem(
+                        icon = Icons.Default.Home,
                         text = "Início",
                         selected = true
                     )
 
                     BottomItem(
-                        text = "Chamados"
+                        icon = Icons.Default.Build,
+                        text = "Chamados",
+                        onClick = onCallsClick
                     )
 
                     BottomItem(
-                        text = "Pagamentos"
+                        icon = Icons.Default.CreditCard,
+                        text = "Pagamentos",
+                        onClick = onPaymentsClick
                     )
 
                     BottomItem(
+                        icon = Icons.Default.Person,
                         text = "Perfil",
                         onClick = onProfileClick
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CustomerSummaryCard(
+    modifier: Modifier = Modifier,
+    value: String,
+    label: String,
+    detail: String
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = GuinchouSurface,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = GuinchouBorder,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(15.dp)
+    ) {
+        Text(
+            text = value,
+            color = GuinchouGreen,
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(3.dp))
+
+        Text(
+            text = label,
+            color = GuinchouWhite,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        Text(
+            text = detail,
+            color = GuinchouGray,
+            fontSize = 10.sp
+        )
+    }
+}
+
+@Composable
+private fun CustomerQuickCard(
+    modifier: Modifier = Modifier,
+    symbol: String,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = GuinchouSurface,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = GuinchouBorder,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(15.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(
+                    color = GuinchouBackground,
+                    shape = RoundedCornerShape(11.dp)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = symbol,
+                fontSize = 18.sp
+            )
+        }
+
+        Spacer(Modifier.height(11.dp))
+
+        Text(
+            text = title,
+            color = GuinchouWhite,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(Modifier.height(2.dp))
+
+        Text(
+            text = description,
+            color = GuinchouGray,
+            fontSize = 10.sp,
+            maxLines = 2
+        )
     }
 }
 
@@ -617,6 +860,7 @@ private fun CustomerMap(
 
 @Composable
 private fun BottomItem(
+    icon: ImageVector,
     text: String,
     selected: Boolean = false,
     onClick: () -> Unit = {}
@@ -626,21 +870,19 @@ private fun BottomItem(
             .clickable(onClick = onClick)
             .padding(
                 horizontal = 10.dp,
-                vertical = 6.dp
+                vertical = 5.dp
             ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .background(
-                    color = if (selected) {
-                        GuinchouGreen
-                    } else {
-                        Color.Transparent
-                    },
-                    shape = CircleShape
-                )
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = if (selected) {
+                GuinchouGreen
+            } else {
+                GuinchouGray
+            },
+            modifier = Modifier.size(22.dp)
         )
 
         Spacer(
@@ -654,9 +896,34 @@ private fun BottomItem(
             } else {
                 GuinchouGray
             },
-            fontSize = 12.sp,
+            fontSize = 11.sp,
+            fontWeight = if (selected) {
+                FontWeight.SemiBold
+            } else {
+                FontWeight.Normal
+            },
             textAlign = TextAlign.Center,
             maxLines = 1
+        )
+
+        Spacer(
+            modifier = Modifier.height(3.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .size(
+                    width = 18.dp,
+                    height = 2.dp
+                )
+                .background(
+                    color = if (selected) {
+                        GuinchouGreen
+                    } else {
+                        Color.Transparent
+                    },
+                    shape = RoundedCornerShape(50)
+                )
         )
     }
 }

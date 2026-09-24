@@ -130,7 +130,7 @@ fun PartnerNotificationsScreen(
             )
 
             Text(
-                text = "Notificações",
+                text = "com/guinchou/app/ui/screens/Notificações",
                 color = GuinchouWhite,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,

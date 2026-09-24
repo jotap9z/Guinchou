@@ -269,7 +269,7 @@ private fun EarningsHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.Notifications,
-                contentDescription = "Notificações",
+                contentDescription = "com/guinchou/app/ui/screens/Notificações",
                 tint = GuinchouWhite,
                 modifier = Modifier.size(20.dp)
             )

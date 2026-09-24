@@ -214,10 +214,7 @@ fun PickupScreen(
                     val geocoder =
                         Geocoder(
                             context,
-                            Locale(
-                                "pt",
-                                "BR"
-                            )
+                            Locale.forLanguageTag("pt-BR")
                         )
 
 
@@ -293,7 +290,7 @@ fun PickupScreen(
                     }
 
                 } catch (
-                    exception: Exception
+                    _: Exception
                 ) {
 
                     /*

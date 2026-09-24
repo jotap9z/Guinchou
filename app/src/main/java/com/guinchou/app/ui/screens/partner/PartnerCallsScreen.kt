@@ -785,7 +785,7 @@ private fun CompletionDialog(call: PartnerCall, onFinish: () -> Unit) {
 @Composable
 private fun CallsHeader(onBackClick: () -> Unit, onNotificationsClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically) {
-        HeaderButton(Icons.Default.ArrowBack, "Voltar", onBackClick)
+        HeaderButton(Icons.AutoMirrored.Filled.ArrowBack, "Voltar", onBackClick)
         Text(
             "Chamados",
             color = GuinchouWhite,
@@ -799,7 +799,7 @@ private fun CallsHeader(onBackClick: () -> Unit, onNotificationsClick: () -> Uni
                 .clickable(onClick = onNotificationsClick),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.Notifications, "Notificações", tint = GuinchouWhite, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.Notifications, "com/guinchou/app/ui/screens/Notificações", tint = GuinchouWhite, modifier = Modifier.size(20.dp))
             Box(
                 Modifier.align(Alignment.TopEnd).offset(x = (-5).dp, y = 5.dp).size(8.dp)
                     .background(GuinchouGreen, CircleShape).border(2.dp, CallsCard, CircleShape)

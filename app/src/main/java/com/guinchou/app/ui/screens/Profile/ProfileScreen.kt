@@ -23,6 +23,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -38,6 +43,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -393,7 +399,7 @@ private fun ProfileMainPage(
 
         ProfileMenuItem(
             icon = "🔔",
-            title = "Notificações",
+            title = "com/guinchou/app/ui/screens/Notificações",
             description = "Gerencie seus avisos",
             onClick = onNotificationsClick
         )
@@ -997,28 +1003,80 @@ private fun VehiclesPage(
 private fun HistoryPage(
     onBackClick: () -> Unit
 ) {
+    var selectedService by remember { mutableStateOf<String?>(null) }
+
+    if (selectedService != null) {
+        AlertDialog(
+            onDismissRequest = { selectedService = null },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(
+                    text = "Detalhes do atendimento",
+                    color = GuinchouWhite,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = selectedService ?: "",
+                        color = GuinchouWhite,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        text = "Serviço concluído com sucesso. O detalhamento completo será carregado pelo backend quando a integração estiver disponível.",
+                        color = GuinchouGray,
+                        fontSize = 13.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedService = null }) {
+                    Text("Fechar", color = GuinchouGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     PageContainer(
         title = "Histórico de serviços",
         onBackClick = onBackClick
     ) {
+        Text(
+            text = "Seus atendimentos",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Consulte os serviços realizados anteriormente.",
+            color = GuinchouGray,
+            fontSize = 12.sp
+        )
+        Spacer(Modifier.height(18.dp))
 
         ServiceHistoryCard(
             date = "14/09/2026",
             route = "Asa Norte → Águas Claras",
             value = "R$ 200,00",
-            status = "Concluído"
+            status = "Concluído",
+            onClick = {
+                selectedService = "14/09/2026 • Asa Norte → Águas Claras • R$ 200,00"
+            }
         )
 
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
+        Spacer(Modifier.height(12.dp))
 
         ServiceHistoryCard(
             date = "03/09/2026",
             route = "Taguatinga → SIA",
             value = "R$ 150,00",
-            status = "Concluído"
+            status = "Concluído",
+            onClick = {
+                selectedService = "03/09/2026 • Taguatinga → SIA • R$ 150,00"
+            }
         )
     }
 }
@@ -1027,49 +1085,132 @@ private fun HistoryPage(
 private fun PaymentsPage(
     onBackClick: () -> Unit
 ) {
+    var pixEnabled by remember { mutableStateOf(true) }
+    var creditEnabled by remember { mutableStateOf(true) }
+    var debitEnabled by remember { mutableStateOf(false) }
+    var showCardDialog by remember { mutableStateOf(false) }
+    var cardNumber by remember { mutableStateOf("") }
+    var cardName by remember { mutableStateOf("") }
+    var cardExpiry by remember { mutableStateOf("") }
+    var savedCard by remember { mutableStateOf("•••• 4242") }
+    var message by remember { mutableStateOf<String?>(null) }
 
-    var pixEnabled by remember {
-        mutableStateOf(true)
-    }
-
-    var creditEnabled by remember {
-        mutableStateOf(true)
-    }
-
-    var debitEnabled by remember {
-        mutableStateOf(false)
+    if (showCardDialog) {
+        AlertDialog(
+            onDismissRequest = { showCardDialog = false },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(
+                    text = "Adicionar cartão",
+                    color = GuinchouWhite,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    ProfileTextField(
+                        value = cardNumber,
+                        label = "Número do cartão",
+                        keyboardType = KeyboardType.Number,
+                        onValueChange = {
+                            cardNumber = it.filter(Char::isDigit).take(16)
+                        }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    ProfileTextField(
+                        value = cardName,
+                        label = "Nome impresso",
+                        onValueChange = { cardName = it }
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    ProfileTextField(
+                        value = cardExpiry,
+                        label = "Validade (MM/AA)",
+                        keyboardType = KeyboardType.Number,
+                        onValueChange = { cardExpiry = it.take(5) }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = cardNumber.length >= 13 && cardName.isNotBlank(),
+                    onClick = {
+                        savedCard = "•••• ${cardNumber.takeLast(4)}"
+                        creditEnabled = true
+                        message = "Cartão adicionado para teste no front-end."
+                        showCardDialog = false
+                        cardNumber = ""
+                        cardName = ""
+                        cardExpiry = ""
+                    }
+                ) {
+                    Text("Salvar", color = GuinchouGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCardDialog = false }) {
+                    Text("Cancelar", color = GuinchouGray)
+                }
+            }
+        )
     }
 
     PageContainer(
         title = "Formas de pagamento",
         onBackClick = onBackClick
     ) {
+        Text(
+            text = "Métodos disponíveis",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Escolha quais opções deseja utilizar nas solicitações.",
+            color = GuinchouGray,
+            fontSize = 12.sp
+        )
+
+        message?.let {
+            Spacer(Modifier.height(14.dp))
+            ProfileFeedbackCard(it)
+        }
+
+        Spacer(Modifier.height(18.dp))
 
         ToggleCard(
             title = "PIX",
             description = "Pagamento instantâneo",
             checked = pixEnabled,
-            onCheckedChange = {
-                pixEnabled = it
-            }
+            onCheckedChange = { pixEnabled = it }
         )
 
         ToggleCard(
             title = "Cartão de crédito",
-            description = "Pagamento com cartão",
+            description = if (creditEnabled) "Cartão salvo: $savedCard" else "Pagamento com cartão",
             checked = creditEnabled,
-            onCheckedChange = {
-                creditEnabled = it
-            }
+            onCheckedChange = { creditEnabled = it }
         )
 
         ToggleCard(
             title = "Cartão de débito",
             description = "Pagamento no débito",
             checked = debitEnabled,
-            onCheckedChange = {
-                debitEnabled = it
-            }
+            onCheckedChange = { debitEnabled = it }
+        )
+
+        Spacer(Modifier.height(10.dp))
+        PrimaryButton(
+            text = "Adicionar cartão",
+            onClick = { showCardDialog = true }
+        )
+
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Os dados acima são apenas demonstrativos nesta etapa. O processamento real de pagamentos será conectado posteriormente.",
+            color = GuinchouGray,
+            fontSize = 11.sp
         )
     }
 }
@@ -1092,7 +1233,7 @@ private fun NotificationsPage(
     }
 
     PageContainer(
-        title = "Notificações",
+        title = "com/guinchou/app/ui/screens/Notificações",
         onBackClick = onBackClick
     ) {
 
@@ -1135,127 +1276,107 @@ private fun NotificationsPage(
 private fun SecurityPage(
     onBackClick: () -> Unit
 ) {
-
-    var currentPassword by remember {
-        mutableStateOf("")
-    }
-
-    var newPassword by remember {
-        mutableStateOf("")
-    }
-
-    var confirmPassword by remember {
-        mutableStateOf("")
-    }
-
-    var message by remember {
-        mutableStateOf<String?>(null)
-    }
+    var currentPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf<String?>(null) }
+    var success by remember { mutableStateOf(false) }
 
     PageContainer(
         title = "Segurança",
         onBackClick = onBackClick
     ) {
-
         Text(
             text = "Alterar senha",
             color = GuinchouWhite,
             fontSize = 17.sp,
             fontWeight = FontWeight.Bold
         )
-
-        Spacer(
-            modifier = Modifier.height(16.dp)
+        Spacer(Modifier.height(5.dp))
+        Text(
+            text = "Use uma senha com pelo menos 6 caracteres.",
+            color = GuinchouGray,
+            fontSize = 12.sp
         )
+        Spacer(Modifier.height(16.dp))
 
-        ProfileTextField(
+        ProfilePasswordField(
             value = currentPassword,
             label = "Senha atual",
             onValueChange = {
-
                 currentPassword = it
                 message = null
             }
         )
+        Spacer(Modifier.height(12.dp))
 
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        ProfileTextField(
+        ProfilePasswordField(
             value = newPassword,
             label = "Nova senha",
             onValueChange = {
-
                 newPassword = it
                 message = null
             }
         )
+        Spacer(Modifier.height(12.dp))
 
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
-
-        ProfileTextField(
+        ProfilePasswordField(
             value = confirmPassword,
             label = "Confirmar nova senha",
             onValueChange = {
-
                 confirmPassword = it
                 message = null
             }
         )
 
-        Spacer(
-            modifier = Modifier.height(16.dp)
-        )
-
         if (message != null) {
-
+            Spacer(Modifier.height(14.dp))
             Text(
                 text = message!!,
-                color = GuinchouGreen,
+                color = if (success) GuinchouGreen else Color(0xFFFF6B6B),
                 fontSize = 13.sp
-            )
-
-            Spacer(
-                modifier = Modifier.height(12.dp)
             )
         }
 
+        Spacer(Modifier.height(20.dp))
+
         PrimaryButton(
             text = "Atualizar senha",
-
             onClick = {
-
+                success = false
                 when {
+                    currentPassword.isBlank() ->
+                        message = "Informe sua senha atual."
 
-                    currentPassword.isBlank() -> {
+                    newPassword.length < 6 ->
+                        message = "A nova senha precisa ter pelo menos 6 caracteres."
 
-                        message =
-                            "Informe sua senha atual."
-                    }
+                    newPassword != confirmPassword ->
+                        message = "As novas senhas não coincidem."
 
-                    newPassword.length < 6 -> {
-
-                        message =
-                            "A nova senha precisa ter pelo menos 6 caracteres."
-                    }
-
-                    newPassword != confirmPassword -> {
-
-                        message =
-                            "As novas senhas não coincidem."
-                    }
+                    currentPassword == newPassword ->
+                        message = "A nova senha deve ser diferente da senha atual."
 
                     else -> {
-
-                        message =
-                            "Senha validada no Front-end."
+                        success = true
+                        message = "Validação concluída. A alteração real será conectada ao Auth."
+                        currentPassword = ""
+                        newPassword = ""
+                        confirmPassword = ""
                     }
                 }
             }
         )
+
+        Spacer(Modifier.height(26.dp))
+        Text(
+            text = "Proteção da conta",
+            color = GuinchouWhite,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(12.dp))
+        ProfileFeedbackCard("E-mail verificado • Sessão atual ativa neste dispositivo.")
     }
 }
 
@@ -1263,42 +1384,145 @@ private fun SecurityPage(
 private fun HelpPage(
     onBackClick: () -> Unit
 ) {
+    var selectedHelp by remember { mutableStateOf<String?>(null) }
+    var showContactDialog by remember { mutableStateOf(false) }
+    var subject by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var ticketSent by remember { mutableStateOf(false) }
+
+    selectedHelp?.let { topic ->
+        AlertDialog(
+            onDismissRequest = { selectedHelp = null },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(topic, color = GuinchouWhite, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(
+                    text = customerHelpText(topic),
+                    color = GuinchouGray,
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedHelp = null }) {
+                    Text("Entendi", color = GuinchouGreen, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    if (showContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showContactDialog = false },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(
+                    text = "Falar com o suporte",
+                    color = GuinchouWhite,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    ProfileSelectField(
+                        label = "Assunto",
+                        value = subject,
+                        options = listOf(
+                            "Problema ao solicitar guincho",
+                            "Motorista não localizado",
+                            "Problema durante o atendimento",
+                            "Cancelamento de solicitação",
+                            "Problema com pagamento",
+                            "Problema com veículo cadastrado",
+                            "Problema com minha conta",
+                            "Problema com o aplicativo",
+                            "Outro assunto"
+                        ),
+                        placeholder = "Selecione o motivo",
+                        onValueChange = { subject = it }
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Descreva o problema") },
+                        minLines = 4,
+                        colors = profileTextFieldColors()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = subject.isNotBlank() && description.isNotBlank(),
+                    onClick = {
+                        ticketSent = true
+                        showContactDialog = false
+                        subject = ""
+                        description = ""
+                    }
+                ) {
+                    Text("Enviar", color = GuinchouGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showContactDialog = false }) {
+                    Text("Cancelar", color = GuinchouGray)
+                }
+            }
+        )
+    }
 
     PageContainer(
         title = "Ajuda e suporte",
         onBackClick = onBackClick
     ) {
+        if (ticketSent) {
+            ProfileFeedbackCard(
+                "Solicitação registrada localmente. O envio real será conectado ao backend."
+            )
+            Spacer(Modifier.height(16.dp))
+        }
+
+        Text(
+            text = "Central de ajuda",
+            color = GuinchouWhite,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Encontre respostas rápidas ou fale com o suporte.",
+            color = GuinchouGray,
+            fontSize = 12.sp
+        )
+        Spacer(Modifier.height(18.dp))
 
         SupportCard(
-            title =
-                "Como solicitar um guincho?",
-
-            description =
-                "Na página inicial, toque em solicitar guincho e siga as etapas informando origem, destino, veículo e problema."
+            title = "Como solicitar um guincho?",
+            description = "Veja como funciona o fluxo de solicitação.",
+            onClick = { selectedHelp = "Como solicitar um guincho?" }
         )
 
         SupportCard(
-            title =
-                "Como acompanho meu atendimento?",
-
-            description =
-                "Após um motorista aceitar a solicitação, o acompanhamento ficará disponível até a conclusão."
+            title = "Como acompanho meu atendimento?",
+            description = "Entenda as etapas após um motorista aceitar.",
+            onClick = { selectedHelp = "Como acompanho meu atendimento?" }
         )
 
         SupportCard(
-            title =
-                "Problemas com pagamento",
-
-            description =
-                "O suporte de pagamentos será integrado posteriormente."
+            title = "Problemas com pagamento",
+            description = "Consulte orientações sobre pagamento e cobrança.",
+            onClick = { selectedHelp = "Problemas com pagamento" }
         )
 
-        SupportCard(
-            title =
-                "Falar com o suporte",
-
-            description =
-                "O canal de atendimento será conectado ao backend em uma etapa futura."
+        Spacer(Modifier.height(8.dp))
+        PrimaryButton(
+            text = "Falar com o suporte",
+            onClick = { showContactDialog = true }
         )
     }
 }
@@ -1641,9 +1865,9 @@ private fun ServiceHistoryCard(
     date: String,
     route: String,
     value: String,
-    status: String
+    status: String,
+    onClick: () -> Unit = {}
 ) {
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1651,23 +1875,18 @@ private fun ServiceHistoryCard(
                 color = GuinchouSurface,
                 shape = RoundedCornerShape(16.dp)
             )
+            .clickable(onClick = onClick)
             .padding(16.dp)
     ) {
-
         Row(
-            modifier =
-                Modifier.fillMaxWidth(),
-
-            horizontalArrangement =
-                Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
             Text(
                 text = date,
                 color = GuinchouGray,
                 fontSize = 12.sp
             )
-
             Text(
                 text = status,
                 color = GuinchouGreen,
@@ -1676,9 +1895,7 @@ private fun ServiceHistoryCard(
             )
         }
 
-        Spacer(
-            modifier = Modifier.height(10.dp)
-        )
+        Spacer(Modifier.height(10.dp))
 
         Text(
             text = route,
@@ -1686,24 +1903,33 @@ private fun ServiceHistoryCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(
-            modifier = Modifier.height(6.dp)
-        )
+        Spacer(Modifier.height(6.dp))
 
-        Text(
-            text = value,
-            color = GuinchouGreen,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = value,
+                color = GuinchouGreen,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "Ver detalhes ›",
+                color = GuinchouGray,
+                fontSize = 11.sp
+            )
+        }
     }
 }
 
 @Composable
 private fun SupportCard(
     title: String,
-    description: String
+    description: String,
+    onClick: () -> Unit = {}
 ) {
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1711,30 +1937,156 @@ private fun SupportCard(
                 color = GuinchouSurface,
                 shape = RoundedCornerShape(16.dp)
             )
+            .clickable(onClick = onClick)
             .padding(16.dp)
     ) {
-
-        Text(
-            text = title,
-            color = GuinchouWhite,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(
-            modifier = Modifier.height(6.dp)
-        )
-
-        Text(
-            text = description,
-            color = GuinchouGray,
-            fontSize = 13.sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = GuinchouWhite,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = description,
+                    color = GuinchouGray,
+                    fontSize = 13.sp
+                )
+            }
+            Text(
+                text = "›",
+                color = GuinchouGreen,
+                fontSize = 24.sp
+            )
+        }
     }
+    Spacer(Modifier.height(12.dp))
+}
 
-    Spacer(
-        modifier = Modifier.height(12.dp)
+
+@Composable
+private fun ProfilePasswordField(
+    value: String,
+    label: String,
+    onValueChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        colors = profileTextFieldColors()
     )
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileSelectField(
+    label: String,
+    value: String,
+    options: List<String>,
+    placeholder: String = "Selecione uma opção",
+    onValueChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            },
+            colors = profileTextFieldColors()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(GuinchouSurface)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option,
+                            color = GuinchouWhite
+                        )
+                    },
+                    onClick = {
+                        onValueChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileFeedbackCard(
+    text: String
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = GuinchouGreen.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(14.dp)
+    ) {
+        Text(
+            text = text,
+            color = GuinchouWhite,
+            fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+private fun profileTextFieldColors() =
+    OutlinedTextFieldDefaults.colors(
+        focusedTextColor = GuinchouWhite,
+        unfocusedTextColor = GuinchouWhite,
+        focusedBorderColor = GuinchouGreen,
+        unfocusedBorderColor = GuinchouBorder,
+        focusedLabelColor = GuinchouGreen,
+        unfocusedLabelColor = GuinchouGray,
+        cursorColor = GuinchouGreen,
+        focusedContainerColor = GuinchouSurface,
+        unfocusedContainerColor = GuinchouSurface
+    )
+
+private fun customerHelpText(topic: String): String =
+    when (topic) {
+        "Como solicitar um guincho?" ->
+            "Na página inicial, toque em solicitar guincho e informe origem, destino, veículo e o problema apresentado. Depois confira a estimativa antes de continuar."
+
+        "Como acompanho meu atendimento?" ->
+            "Depois que um motorista aceitar a solicitação, o aplicativo apresenta o andamento do atendimento até a conclusão do serviço."
+
+        "Problemas com pagamento" ->
+            "Confira a forma de pagamento selecionada e os dados informados. Caso o problema continue, utilize o botão Falar com o suporte."
+
+        else ->
+            "Utilize o atendimento do suporte para registrar sua solicitação."
+    }
 
 @Composable
 private fun EmptyCard(
