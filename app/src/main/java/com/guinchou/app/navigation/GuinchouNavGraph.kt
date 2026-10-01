@@ -30,6 +30,7 @@ import com.guinchou.app.ui.screens.payment.PaymentScreen
 import com.guinchou.app.ui.screens.payment.PaymentsScreen
 import com.guinchou.app.ui.screens.profile.ProfileScreen
 import com.guinchou.app.ui.screens.request.CompletedScreen
+import com.guinchou.app.ui.screens.request.CustomerRequestConfirmationRoute
 import com.guinchou.app.ui.screens.request.DestinationScreen
 import com.guinchou.app.ui.screens.request.EstimateScreen
 import com.guinchou.app.ui.screens.request.PickupScreen
@@ -52,6 +53,7 @@ private const val CUSTOMER_CALLS_ROUTE = "customer_calls"
 private const val CUSTOMER_NOTIFICATIONS_ROUTE = "customer_notifications"
 private const val CUSTOMER_VEHICLES_ROUTE = "customer_vehicles"
 private const val CUSTOMER_HISTORY_ROUTE = "customer_history"
+private const val REQUEST_CONFIRM_ROUTE = "request_confirm"
 
 @Composable
 fun GuinchouNavGraph(
@@ -941,16 +943,34 @@ fun GuinchouNavGraph(
                         return@ProblemScreen
                     }
 
-                    towRequestViewModel
-                        .calculateEstimate(18.0)
-
-                    navController.navigate(
-                        Routes.ESTIMATE
-                    )
+                    navController.navigate(REQUEST_CONFIRM_ROUTE) {
+                        launchSingleTop = true
+                    }
                 },
 
                 onBackClick = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(route = REQUEST_CONFIRM_ROUTE) {
+            CustomerRequestConfirmationRoute(
+                towRequestViewModel = towRequestViewModel,
+                onRegistered = {
+                    customerHomeViewModel.load()
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                onHomeClick = {
+                    towRequestViewModel.clearRequest()
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.HOME) {
+                            inclusive = false
+                        }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -1224,4 +1244,3 @@ private fun openHome(
         launchSingleTop = true
     }
 }
-
