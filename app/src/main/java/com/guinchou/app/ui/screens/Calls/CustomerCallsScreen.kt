@@ -82,7 +82,11 @@ fun CustomerCallsScreen(
         mutableStateOf<String?>(null)
     }
 
-    var pendingCancellationId by rememberSaveable {
+    var pendingRequestId by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    var pendingAction by rememberSaveable {
         mutableStateOf<String?>(null)
     }
 
@@ -90,8 +94,7 @@ fun CustomerCallsScreen(
         callsViewModel.load()
     }
 
-    // Mantém a operação nesta tela até a atualização do banco terminar.
-    BackHandler(enabled = state.cancelling) {}
+    BackHandler(enabled = state.busy) {}
 
     val selectedCall = (
             state.activeCalls + state.historyCalls
@@ -99,11 +102,24 @@ fun CustomerCallsScreen(
             it.id == selectedCallId
         }
 
-    val pendingCancellation = state.activeCalls.firstOrNull {
-        it.id == pendingCancellationId && it.canCancel
+    val pendingCall = state.activeCalls.firstOrNull {
+        it.id == pendingRequestId
     }
 
-    if (selectedCall != null && pendingCancellationId == null) {
+    val confirmingStart = pendingAction == "START"
+
+    val canConfirmAction =
+        pendingCall != null &&
+                !state.loading &&
+                !state.busy &&
+                state.errorMessage == null &&
+                if (confirmingStart) {
+                    pendingCall.canStartSearch
+                } else {
+                    pendingCall.canCancel
+                }
+
+    if (selectedCall != null && pendingRequestId == null) {
         AlertDialog(
             onDismissRequest = {
                 selectedCallId = null
@@ -146,77 +162,86 @@ fun CustomerCallsScreen(
                 ) {
                     Text("Fechar", color = GuinchouGreen)
                 }
-            },
-            dismissButton = {
-                if (selectedCall.canCancel) {
-                    TextButton(
-                        enabled =
-                            !state.loading &&
-                                    !state.cancelling &&
-                                    state.errorMessage == null,
-                        onClick = {
-                            pendingCancellationId = selectedCall.id
-                        }
-                    ) {
-                        Text(
-                            text = "Cancelar chamado",
-                            color = CallsErrorColor
-                        )
-                    }
-                }
             }
         )
     }
 
-    if (pendingCancellation != null) {
+    if (pendingCall != null && pendingAction != null) {
         AlertDialog(
             onDismissRequest = {
-                pendingCancellationId = null
+                pendingRequestId = null
+                pendingAction = null
             },
             containerColor = GuinchouSurface,
             title = {
                 Text(
-                    text = "Cancelar chamado?",
+                    text = if (confirmingStart) {
+                        "Iniciar busca?"
+                    } else {
+                        "Cancelar chamado?"
+                    },
                     color = GuinchouWhite
                 )
             },
             text = {
                 Text(
-                    text =
+                    text = if (confirmingStart) {
+                        "O chamado ${pendingCall.id.take(8)} " +
+                                "ficará disponível para aceitação por um guincheiro."
+                    } else {
                         "Deseja cancelar o chamado " +
-                                "${pendingCancellation.id.take(8)}? " +
-                                "Ele será movido para o histórico.",
+                                "${pendingCall.id.take(8)}? " +
+                                "Ele será movido para o histórico."
+                    },
                     color = GuinchouGray
                 )
             },
             confirmButton = {
                 TextButton(
-                    enabled =
-                        !state.loading &&
-                                !state.cancelling &&
-                                state.errorMessage == null,
+                    enabled = canConfirmAction,
                     onClick = {
-                        val requestId = pendingCancellation.id
-                        pendingCancellationId = null
+                        val requestId = pendingCall.id
+                        val startSearch = confirmingStart
+
+                        pendingRequestId = null
+                        pendingAction = null
                         selectedCallId = null
-                        callsViewModel.cancel(requestId)
+
+                        if (startSearch) {
+                            callsViewModel.startSearch(requestId)
+                        } else {
+                            callsViewModel.cancel(requestId)
+                        }
                     }
                 ) {
                     Text(
-                        text = "Sim, cancelar",
-                        color = CallsErrorColor
+                        text = if (confirmingStart) {
+                            "Iniciar busca"
+                        } else {
+                            "Sim, cancelar"
+                        },
+                        color = if (confirmingStart) {
+                            GuinchouGreen
+                        } else {
+                            CallsErrorColor
+                        }
                     )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = {
-                        pendingCancellationId = null
+                        pendingRequestId = null
+                        pendingAction = null
                     }
                 ) {
                     Text(
-                        text = "Manter chamado",
-                        color = GuinchouGreen
+                        text = if (confirmingStart) {
+                            "Agora não"
+                        } else {
+                            "Manter chamado"
+                        },
+                        color = GuinchouGray
                     )
                 }
             }
@@ -242,7 +267,7 @@ fun CustomerCallsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    enabled = !state.cancelling,
+                    enabled = !state.busy,
                     onClick = onBackClick
                 ) {
                     Icon(
@@ -261,10 +286,11 @@ fun CustomerCallsScreen(
                 )
 
                 TextButton(
-                    enabled = !state.loading && !state.cancelling,
+                    enabled = !state.loading && !state.busy,
                     onClick = {
                         selectedCallId = null
-                        pendingCancellationId = null
+                        pendingRequestId = null
+                        pendingAction = null
                         callsViewModel.load()
                     }
                 ) {
@@ -311,20 +337,18 @@ fun CustomerCallsScreen(
                 }
 
                 when {
-                    state.cancelling -> {
+                    state.busy -> {
                         LoadingCalls(
-                            message = if (state.loading) {
-                                "Atualizando seus chamados..."
-                            } else {
-                                "Cancelando chamado..."
+                            message = when {
+                                state.loading -> "Atualizando seus chamados..."
+                                state.startingSearch -> "Iniciando busca..."
+                                else -> "Cancelando chamado..."
                             }
                         )
                     }
 
                     state.loading -> {
-                        LoadingCalls(
-                            message = "Carregando chamados..."
-                        )
+                        LoadingCalls("Carregando chamados...")
                     }
 
                     state.errorMessage != null -> {
@@ -366,12 +390,18 @@ fun CustomerCallsScreen(
                             calls.forEach { call ->
                                 CallCard(
                                     call = call,
-                                    onClick = {
+                                    onDetailsClick = {
                                         selectedCallId = call.id
+                                    },
+                                    onStartClick = {
+                                        selectedCallId = null
+                                        pendingRequestId = call.id
+                                        pendingAction = "START"
                                     },
                                     onCancelClick = {
                                         selectedCallId = null
-                                        pendingCancellationId = call.id
+                                        pendingRequestId = call.id
+                                        pendingAction = "CANCEL"
                                     }
                                 )
                             }
@@ -439,7 +469,7 @@ fun CustomerCallsScreen(
         HorizontalDivider(color = GuinchouBorder)
 
         CustomerCallsBottomBar(
-            enabled = !state.cancelling,
+            enabled = !state.busy,
             onHomeClick = onHomeClick,
             onPaymentsClick = onPaymentsClick,
             onProfileClick = onProfileClick
@@ -533,7 +563,8 @@ private fun CallsTab(
 @Composable
 private fun CallCard(
     call: CustomerCallRecord,
-    onClick: () -> Unit,
+    onDetailsClick: () -> Unit,
+    onStartClick: () -> Unit,
     onCancelClick: () -> Unit
 ) {
     Column(
@@ -548,7 +579,7 @@ private fun CallCard(
                 GuinchouBorder,
                 RoundedCornerShape(16.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(onClick = onDetailsClick)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -573,6 +604,33 @@ private fun CallCard(
             color = GuinchouGray,
             fontSize = 12.sp
         )
+
+        if (call.status == "SEARCHING") {
+            Text(
+                text =
+                    "Aguardando aceitação. " +
+                            "Toque em Atualizar para consultar a situação.",
+                color = GuinchouGray,
+                fontSize = 12.sp
+            )
+        }
+
+        if (call.canStartSearch) {
+            Button(
+                onClick = onStartClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = GuinchouGreen,
+                    contentColor = GuinchouBackground
+                )
+            ) {
+                Text(
+                    text = "Iniciar busca",
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
 
         if (call.canCancel) {
             TextButton(onClick = onCancelClick) {

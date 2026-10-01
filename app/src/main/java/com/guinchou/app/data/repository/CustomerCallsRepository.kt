@@ -18,6 +18,9 @@ data class CustomerCallRecord(
     val id: String,
     val status: String
 ) {
+    val canStartSearch: Boolean
+        get() = status == "CREATED"
+
     val canCancel: Boolean
         get() = status == "CREATED" || status == "SEARCHING"
 }
@@ -59,9 +62,29 @@ class CustomerCallsRepository {
         }
     }
 
+    suspend fun startSearch(requestId: String) {
+        executeAction(
+            requestId = requestId,
+            function = "customer_start_tow_request",
+            expectedStatus = "SEARCHING"
+        )
+    }
+
     suspend fun cancel(requestId: String) {
+        executeAction(
+            requestId = requestId,
+            function = "customer_cancel_tow_request",
+            expectedStatus = "CANCELLED"
+        )
+    }
+
+    private suspend fun executeAction(
+        requestId: String,
+        function: String,
+        expectedStatus: String
+    ) {
         check(client.auth.currentUserOrNull() != null) {
-            "Faça login para cancelar o chamado."
+            "Faça login para alterar o chamado."
         }
 
         require(requestId.isNotBlank()) {
@@ -73,7 +96,7 @@ class CustomerCallsRepository {
         }
 
         val response = client.postgrest.rpc(
-            function = "customer_cancel_tow_request",
+            function = function,
             parameters = parameters
         )
 
@@ -81,8 +104,8 @@ class CustomerCallsRepository {
             .jsonPrimitive
             .content
 
-        check(status == "CANCELLED") {
-            "O servidor não confirmou o cancelamento."
+        check(status == expectedStatus) {
+            "O servidor não confirmou a operação."
         }
     }
 
