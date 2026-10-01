@@ -1,5 +1,6 @@
 package com.guinchou.app.ui.screens.calls
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -58,6 +59,8 @@ import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
 import com.guinchou.app.viewmodel.CustomerCallsViewModel
 
+private val CallsErrorColor = Color(0xFFFF8A80)
+
 @Suppress("UNUSED_PARAMETER")
 @Composable
 fun CustomerCallsScreen(
@@ -68,11 +71,7 @@ fun CustomerCallsScreen(
     onPaymentsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    // A assinatura é mantida para compatibilidade com a navegação existente.
-    // O acompanhamento simulado não é aberto para os registros reais.
-
     val callsViewModel: CustomerCallsViewModel = viewModel()
-
     val state by callsViewModel.uiState.collectAsStateWithLifecycle()
 
     var showHistory by rememberSaveable {
@@ -83,9 +82,16 @@ fun CustomerCallsScreen(
         mutableStateOf<String?>(null)
     }
 
+    var pendingCancellationId by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
     LaunchedEffect(Unit) {
         callsViewModel.load()
     }
+
+    // Mantém a operação nesta tela até a atualização do banco terminar.
+    BackHandler(enabled = state.cancelling) {}
 
     val selectedCall = (
             state.activeCalls + state.historyCalls
@@ -93,7 +99,11 @@ fun CustomerCallsScreen(
             it.id == selectedCallId
         }
 
-    if (selectedCall != null) {
+    val pendingCancellation = state.activeCalls.firstOrNull {
+        it.id == pendingCancellationId && it.canCancel
+    }
+
+    if (selectedCall != null && pendingCancellationId == null) {
         AlertDialog(
             onDismissRequest = {
                 selectedCallId = null
@@ -134,8 +144,78 @@ fun CustomerCallsScreen(
                         selectedCallId = null
                     }
                 ) {
+                    Text("Fechar", color = GuinchouGreen)
+                }
+            },
+            dismissButton = {
+                if (selectedCall.canCancel) {
+                    TextButton(
+                        enabled =
+                            !state.loading &&
+                                    !state.cancelling &&
+                                    state.errorMessage == null,
+                        onClick = {
+                            pendingCancellationId = selectedCall.id
+                        }
+                    ) {
+                        Text(
+                            text = "Cancelar chamado",
+                            color = CallsErrorColor
+                        )
+                    }
+                }
+            }
+        )
+    }
+
+    if (pendingCancellation != null) {
+        AlertDialog(
+            onDismissRequest = {
+                pendingCancellationId = null
+            },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(
+                    text = "Cancelar chamado?",
+                    color = GuinchouWhite
+                )
+            },
+            text = {
+                Text(
+                    text =
+                        "Deseja cancelar o chamado " +
+                                "${pendingCancellation.id.take(8)}? " +
+                                "Ele será movido para o histórico.",
+                    color = GuinchouGray
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled =
+                        !state.loading &&
+                                !state.cancelling &&
+                                state.errorMessage == null,
+                    onClick = {
+                        val requestId = pendingCancellation.id
+                        pendingCancellationId = null
+                        selectedCallId = null
+                        callsViewModel.cancel(requestId)
+                    }
+                ) {
                     Text(
-                        text = "Fechar",
+                        text = "Sim, cancelar",
+                        color = CallsErrorColor
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        pendingCancellationId = null
+                    }
+                ) {
+                    Text(
+                        text = "Manter chamado",
                         color = GuinchouGreen
                     )
                 }
@@ -162,6 +242,7 @@ fun CustomerCallsScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
+                    enabled = !state.cancelling,
                     onClick = onBackClick
                 ) {
                     Icon(
@@ -180,15 +261,14 @@ fun CustomerCallsScreen(
                 )
 
                 TextButton(
+                    enabled = !state.loading && !state.cancelling,
                     onClick = {
+                        selectedCallId = null
+                        pendingCancellationId = null
                         callsViewModel.load()
-                    },
-                    enabled = !state.loading
+                    }
                 ) {
-                    Text(
-                        text = "Atualizar",
-                        color = GuinchouGreen
-                    )
+                    Text("Atualizar", color = GuinchouGreen)
                 }
             }
 
@@ -216,24 +296,41 @@ fun CustomerCallsScreen(
                     }
                 )
 
+                state.successMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = GuinchouGreen
+                    )
+                }
+
+                state.actionErrorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        color = CallsErrorColor
+                    )
+                }
+
                 when {
+                    state.cancelling -> {
+                        LoadingCalls(
+                            message = if (state.loading) {
+                                "Atualizando seus chamados..."
+                            } else {
+                                "Cancelando chamado..."
+                            }
+                        )
+                    }
+
                     state.loading -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                color = GuinchouGreen
-                            )
-                        }
+                        LoadingCalls(
+                            message = "Carregando chamados..."
+                        )
                     }
 
                     state.errorMessage != null -> {
                         Text(
-                            text = state.errorMessage ?: "",
-                            color = Color(0xFFFF8A80)
+                            text = state.errorMessage.orEmpty(),
+                            color = CallsErrorColor
                         )
 
                         TextButton(
@@ -263,9 +360,7 @@ fun CustomerCallsScreen(
                                     "Nenhum chamado em andamento."
                                 },
                                 color = GuinchouGray,
-                                modifier = Modifier.padding(
-                                    vertical = 20.dp
-                                )
+                                modifier = Modifier.padding(vertical = 20.dp)
                             )
                         } else {
                             calls.forEach { call ->
@@ -273,25 +368,29 @@ fun CustomerCallsScreen(
                                     call = call,
                                     onClick = {
                                         selectedCallId = call.id
+                                    },
+                                    onCancelClick = {
+                                        selectedCallId = null
+                                        pendingCancellationId = call.id
                                     }
                                 )
                             }
+                        }
 
-                            if (
-                                state.activeCalls.size >= 100 ||
-                                state.historyCalls.count {
-                                    it.status == "COMPLETED"
-                                } >= 100 ||
-                                state.historyCalls.count {
-                                    it.status == "CANCELLED"
-                                } >= 100
-                            ) {
-                                Text(
-                                    text = "A consulta exibe até 100 registros por situação.",
-                                    color = GuinchouGray,
-                                    fontSize = 12.sp
-                                )
-                            }
+                        if (
+                            state.activeCalls.size >= 100 ||
+                            state.historyCalls.count {
+                                it.status == "COMPLETED"
+                            } >= 100 ||
+                            state.historyCalls.count {
+                                it.status == "CANCELLED"
+                            } >= 100
+                        ) {
+                            Text(
+                                text = "A consulta exibe até 100 registros por situação.",
+                                color = GuinchouGray,
+                                fontSize = 12.sp
+                            )
                         }
 
                         if (state.activeCalls.isNotEmpty()) {
@@ -305,12 +404,12 @@ fun CustomerCallsScreen(
                 }
 
                 Button(
+                    enabled = state.canRequestTow,
                     onClick = {
                         if (state.canRequestTow) {
                             onRequestTowClick()
                         }
                     },
-                    enabled = state.canRequestTow,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -337,14 +436,31 @@ fun CustomerCallsScreen(
             }
         }
 
-        HorizontalDivider(
-            color = GuinchouBorder
-        )
+        HorizontalDivider(color = GuinchouBorder)
 
         CustomerCallsBottomBar(
+            enabled = !state.cancelling,
             onHomeClick = onHomeClick,
             onPaymentsClick = onPaymentsClick,
             onProfileClick = onProfileClick
+        )
+    }
+}
+
+@Composable
+private fun LoadingCalls(message: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CircularProgressIndicator(color = GuinchouGreen)
+
+        Text(
+            text = message,
+            color = GuinchouGray
         )
     }
 }
@@ -398,11 +514,7 @@ private fun CallsTab(
     Box(
         modifier = modifier
             .background(
-                if (selected) {
-                    GuinchouGreen
-                } else {
-                    Color.Transparent
-                },
+                if (selected) GuinchouGreen else Color.Transparent,
                 RoundedCornerShape(10.dp)
             )
             .clickable(onClick = onClick)
@@ -411,11 +523,7 @@ private fun CallsTab(
     ) {
         Text(
             text = text,
-            color = if (selected) {
-                GuinchouBackground
-            } else {
-                GuinchouGray
-            },
+            color = if (selected) GuinchouBackground else GuinchouGray,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -425,7 +533,8 @@ private fun CallsTab(
 @Composable
 private fun CallCard(
     call: CustomerCallRecord,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onCancelClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -464,12 +573,19 @@ private fun CallCard(
             color = GuinchouGray,
             fontSize = 12.sp
         )
+
+        if (call.canCancel) {
+            TextButton(onClick = onCancelClick) {
+                Text(
+                    text = "Cancelar chamado",
+                    color = CallsErrorColor
+                )
+            }
+        }
     }
 }
 
-private fun statusLabel(
-    status: String
-): String = when (status) {
+private fun statusLabel(status: String): String = when (status) {
     "CREATED" -> "Solicitação registrada"
     "SEARCHING" -> "Buscando guincheiro"
     "ACCEPTED" -> "Chamado aceito"
@@ -484,6 +600,7 @@ private fun statusLabel(
 
 @Composable
 private fun CustomerCallsBottomBar(
+    enabled: Boolean,
     onHomeClick: () -> Unit,
     onPaymentsClick: () -> Unit,
     onProfileClick: () -> Unit
@@ -493,34 +610,35 @@ private fun CustomerCallsBottomBar(
             .fillMaxWidth()
             .background(GuinchouBackground)
             .navigationBarsPadding()
-            .padding(
-                horizontal = 8.dp,
-                vertical = 8.dp
-            ),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
         BottomItem(
             icon = Icons.Default.Home,
             text = "Início",
+            enabled = enabled,
             onClick = onHomeClick
         )
 
         BottomItem(
             icon = Icons.Default.Build,
             text = "Chamados",
-            selected = true
+            selected = true,
+            enabled = enabled
         )
 
         BottomItem(
             icon = Icons.Default.CreditCard,
             text = "Pagamentos",
+            enabled = enabled,
             onClick = onPaymentsClick
         )
 
         BottomItem(
             icon = Icons.Default.Person,
             text = "Perfil",
+            enabled = enabled,
             onClick = onProfileClick
         )
     }
@@ -531,25 +649,22 @@ private fun BottomItem(
     icon: ImageVector,
     text: String,
     selected: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(
-                horizontal = 10.dp,
-                vertical = 5.dp
-            ),
+            .clickable(
+                enabled = enabled,
+                onClick = onClick
+            )
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
-            tint = if (selected) {
-                GuinchouGreen
-            } else {
-                GuinchouGray
-            },
+            tint = if (selected) GuinchouGreen else GuinchouGray,
             modifier = Modifier.size(22.dp)
         )
 
@@ -557,11 +672,7 @@ private fun BottomItem(
 
         Text(
             text = text,
-            color = if (selected) {
-                GuinchouGreen
-            } else {
-                GuinchouGray
-            },
+            color = if (selected) GuinchouGreen else GuinchouGray,
             fontSize = 11.sp
         )
 
@@ -569,16 +680,9 @@ private fun BottomItem(
 
         Box(
             modifier = Modifier
-                .size(
-                    width = 18.dp,
-                    height = 2.dp
-                )
+                .size(width = 18.dp, height = 2.dp)
                 .background(
-                    if (selected) {
-                        GuinchouGreen
-                    } else {
-                        Color.Transparent
-                    },
+                    if (selected) GuinchouGreen else Color.Transparent,
                     RoundedCornerShape(50)
                 )
         )

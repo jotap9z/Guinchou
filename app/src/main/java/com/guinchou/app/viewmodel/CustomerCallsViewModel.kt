@@ -14,19 +14,27 @@ data class CustomerCallsUiState(
     val loading: Boolean = true,
     val activeCalls: List<CustomerCallRecord> = emptyList(),
     val historyCalls: List<CustomerCallRecord> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val cancellingRequestId: String? = null,
+    val actionErrorMessage: String? = null,
+    val successMessage: String? = null
 ) {
+    val cancelling: Boolean
+        get() = cancellingRequestId != null
+
     val canRequestTow: Boolean
         get() =
             !loading &&
+                    !cancelling &&
                     errorMessage == null &&
                     activeCalls.isEmpty()
 }
 
 class CustomerCallsViewModel : ViewModel() {
+
     private val repository = CustomerCallsRepository()
 
-    private var loadJob: Job? = null
+    private var operationJob: Job? = null
 
     private val _uiState = MutableStateFlow(
         CustomerCallsUiState()
@@ -35,33 +43,107 @@ class CustomerCallsViewModel : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     fun load() {
-        loadJob?.cancel()
+        if (_uiState.value.cancelling) {
+            return
+        }
 
-        _uiState.value = CustomerCallsUiState()
+        operationJob?.cancel()
 
-        loadJob = viewModelScope.launch {
+        _uiState.value = _uiState.value.copy(
+            loading = true,
+            errorMessage = null,
+            actionErrorMessage = null,
+            successMessage = null
+        )
+
+        operationJob = viewModelScope.launch {
+            refresh()
+        }
+    }
+
+    fun cancel(requestId: String) {
+        val currentState = _uiState.value
+
+        if (
+            currentState.loading ||
+            currentState.cancelling ||
+            currentState.errorMessage != null
+        ) {
+            return
+        }
+
+        val call = currentState.activeCalls.firstOrNull {
+            it.id == requestId
+        } ?: return
+
+        if (!call.canCancel) {
+            return
+        }
+
+        operationJob?.cancel()
+
+        _uiState.value = currentState.copy(
+            cancellingRequestId = requestId,
+            actionErrorMessage = null,
+            successMessage = null
+        )
+
+        operationJob = viewModelScope.launch {
+            var successMessage: String? = null
+            var actionErrorMessage: String? = null
+
             try {
-                val data = repository.load()
+                repository.cancel(requestId)
 
-                _uiState.value = CustomerCallsUiState(
-                    loading = false,
-                    activeCalls = data.active,
-                    historyCalls = data.history
-                )
+                successMessage = "Chamado cancelado com sucesso."
             } catch (error: CancellationException) {
                 throw error
-            } catch (error: IllegalStateException) {
-                _uiState.value = CustomerCallsUiState(
-                    loading = false,
-                    errorMessage = error.message
-                        ?: "Não foi possível consultar seus chamados."
-                )
             } catch (_: Exception) {
-                _uiState.value = CustomerCallsUiState(
-                    loading = false,
-                    errorMessage = "Não foi possível carregar os chamados. Confira sua conexão e tente novamente."
-                )
+                actionErrorMessage =
+                    "Não foi possível confirmar o cancelamento. " +
+                            "Confira a situação atual do chamado antes de tentar novamente."
             }
+
+            // Consulta o banco também após uma falha:
+            // a operação pode ter sido concluída antes da conexão cair.
+            refresh(
+                successMessage = successMessage,
+                actionErrorMessage = actionErrorMessage
+            )
+        }
+    }
+
+    private suspend fun refresh(
+        successMessage: String? = null,
+        actionErrorMessage: String? = null
+    ) {
+        _uiState.value = _uiState.value.copy(
+            loading = true,
+            errorMessage = null
+        )
+
+        try {
+            val data = repository.load()
+
+            _uiState.value = CustomerCallsUiState(
+                loading = false,
+                activeCalls = data.active,
+                historyCalls = data.history,
+                successMessage = successMessage,
+                actionErrorMessage = actionErrorMessage
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            _uiState.value = _uiState.value.copy(
+                loading = false,
+                cancellingRequestId = null,
+                errorMessage =
+                    "Não foi possível atualizar os chamados. " +
+                            "Confira sua conexão e toque em Atualizar.",
+                successMessage = successMessage,
+                actionErrorMessage = actionErrorMessage
+            )
         }
     }
 }
