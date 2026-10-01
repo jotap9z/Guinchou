@@ -16,65 +16,49 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.guinchou.app.data.repository.CustomerCallRecord
 import com.guinchou.app.ui.theme.GuinchouBackground
 import com.guinchou.app.ui.theme.GuinchouBorder
 import com.guinchou.app.ui.theme.GuinchouGray
 import com.guinchou.app.ui.theme.GuinchouGreen
 import com.guinchou.app.ui.theme.GuinchouSurface
 import com.guinchou.app.ui.theme.GuinchouWhite
+import com.guinchou.app.viewmodel.CustomerCallsViewModel
 
-private enum class CustomerCallsTab {
-    ACTIVE,
-    HISTORY
-}
-
-private data class CustomerCallItem(
-    val id: Int,
-    val date: String,
-    val time: String,
-    val pickup: String,
-    val destination: String,
-    val vehicle: String,
-    val problem: String,
-    val driver: String,
-    val towTruck: String,
-    val towTruckPlate: String,
-    val payment: String,
-    val value: String,
-    val status: String,
-    val active: Boolean,
-)
-
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun CustomerCallsScreen(
     onBackClick: () -> Unit = {},
@@ -84,69 +68,79 @@ fun CustomerCallsScreen(
     onPaymentsClick: () -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var selectedTab by remember { mutableStateOf(CustomerCallsTab.ACTIVE) }
-    var selectedCall by remember { mutableStateOf<CustomerCallItem?>(null) }
+    // A assinatura é mantida para compatibilidade com a navegação existente.
+    // O acompanhamento simulado não é aberto para os registros reais.
 
-    val calls = remember {
-        listOf(
-            CustomerCallItem(
-                id = 1,
-                date = "24/09/2026",
-                time = "18:42",
-                pickup = "Asa Norte, Brasília - DF",
-                destination = "Águas Claras, Brasília - DF",
-                vehicle = "Honda Civic 2020 • ABC1D23",
-                problem = "Pane mecânica",
-                driver = "Carlos Henrique",
-                towTruck = "Mercedes-Benz Accelo Plataforma",
-                towTruckPlate = "GUIN2A24",
-                payment = "PIX",
-                value = "R$ 200,00",
-                status = "Guincheiro a caminho",
-                active = true
-            ),
-            CustomerCallItem(
-                id = 2,
-                date = "14/09/2026",
-                time = "16:20",
-                pickup = "Asa Norte, Brasília - DF",
-                destination = "Águas Claras, Brasília - DF",
-                vehicle = "Honda Civic 2020 • ABC1D23",
-                problem = "Pane mecânica",
-                driver = "Rafael Souza",
-                towTruck = "Iveco Daily Plataforma",
-                towTruckPlate = "TOW4B21",
-                payment = "PIX",
-                value = "R$ 200,00",
-                status = "Concluído",
-                active = false
-            ),
-            CustomerCallItem(
-                id = 3,
-                date = "03/09/2026",
-                time = "09:15",
-                pickup = "Taguatinga, Brasília - DF",
-                destination = "SIA, Brasília - DF",
-                vehicle = "Honda Civic 2020 • ABC1D23",
-                problem = "Pneu danificado",
-                driver = "Marcos Lima",
-                towTruck = "Volkswagen Delivery Plataforma",
-                towTruckPlate = "GRW8C19",
-                payment = "Mastercard •••• 4242",
-                value = "R$ 150,00",
-                status = "Concluído",
-                active = false
-            )
-        )
+    val callsViewModel: CustomerCallsViewModel = viewModel()
+
+    val state by callsViewModel.uiState.collectAsStateWithLifecycle()
+
+    var showHistory by rememberSaveable {
+        mutableStateOf(false)
     }
 
-    selectedCall?.let { call ->
-        CustomerCallDetails(
-            call = call,
-            onBackClick = { selectedCall = null },
-            onTrackCallClick = onTrackCallClick
+    var selectedCallId by rememberSaveable {
+        mutableStateOf<String?>(null)
+    }
+
+    LaunchedEffect(Unit) {
+        callsViewModel.load()
+    }
+
+    val selectedCall = (
+            state.activeCalls + state.historyCalls
+            ).firstOrNull {
+            it.id == selectedCallId
+        }
+
+    if (selectedCall != null) {
+        AlertDialog(
+            onDismissRequest = {
+                selectedCallId = null
+            },
+            containerColor = GuinchouSurface,
+            title = {
+                Text(
+                    text = "Detalhes do chamado",
+                    color = GuinchouWhite
+                )
+            },
+            text = {
+                SelectionContainer {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = statusLabel(selectedCall.status),
+                            color = GuinchouGreen,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Identificador\n${selectedCall.id}",
+                            color = GuinchouWhite
+                        )
+
+                        Text(
+                            text = "Status registrado: ${selectedCall.status}",
+                            color = GuinchouGray
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedCallId = null
+                    }
+                ) {
+                    Text(
+                        text = "Fechar",
+                        color = GuinchouGreen
+                    )
+                }
+            }
         )
-        return
     }
 
     Column(
@@ -161,10 +155,46 @@ fun CustomerCallsScreen(
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
         ) {
-            CustomerCallsHeader(onBackClick)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onBackClick
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Voltar",
+                        tint = GuinchouWhite
+                    )
+                }
+
+                Text(
+                    text = "Chamados",
+                    color = GuinchouWhite,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+
+                TextButton(
+                    onClick = {
+                        callsViewModel.load()
+                    },
+                    enabled = !state.loading
+                ) {
+                    Text(
+                        text = "Atualizar",
+                        color = GuinchouGreen
+                    )
+                }
+            }
 
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
                     text = "Seus chamados",
@@ -173,54 +203,114 @@ fun CustomerCallsScreen(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(Modifier.height(4.dp))
-
                 Text(
-                    text = "Acompanhe atendimentos em andamento e consulte seu histórico.",
+                    text = "Consulte as solicitações registradas na sua conta.",
                     color = GuinchouGray,
                     fontSize = 13.sp
                 )
 
-                Spacer(Modifier.height(18.dp))
-
                 CallsTabs(
-                    selected = selectedTab,
-                    onSelected = { selectedTab = it }
+                    showHistory = showHistory,
+                    onSelected = {
+                        showHistory = it
+                    }
                 )
 
-                Spacer(Modifier.height(18.dp))
-
-                if (selectedTab == CustomerCallsTab.ACTIVE) {
-                    val activeCalls = calls.filter { it.active }
-
-                    if (activeCalls.isEmpty()) {
-                        EmptyCallsCard(onRequestTowClick)
-                    } else {
-                        activeCalls.forEach { call ->
-                            ActiveCallCard(
-                                call = call,
-                                onDetailsClick = { selectedCall = call },
-                                onTrackClick = onTrackCallClick
+                when {
+                    state.loading -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = GuinchouGreen
                             )
-                            Spacer(Modifier.height(12.dp))
                         }
                     }
-                } else {
-                    val history = calls.filterNot { it.active }
 
-                    history.forEach { call ->
-                        HistoryCallCard(
-                            call = call,
-                            onClick = { selectedCall = call }
+                    state.errorMessage != null -> {
+                        Text(
+                            text = state.errorMessage ?: "",
+                            color = Color(0xFFFF8A80)
                         )
-                        Spacer(Modifier.height(10.dp))
+
+                        TextButton(
+                            onClick = {
+                                callsViewModel.load()
+                            }
+                        ) {
+                            Text(
+                                text = "Tentar novamente",
+                                color = GuinchouGreen
+                            )
+                        }
+                    }
+
+                    else -> {
+                        val calls = if (showHistory) {
+                            state.historyCalls
+                        } else {
+                            state.activeCalls
+                        }
+
+                        if (calls.isEmpty()) {
+                            Text(
+                                text = if (showHistory) {
+                                    "Você ainda não possui chamados concluídos ou cancelados."
+                                } else {
+                                    "Nenhum chamado em andamento."
+                                },
+                                color = GuinchouGray,
+                                modifier = Modifier.padding(
+                                    vertical = 20.dp
+                                )
+                            )
+                        } else {
+                            calls.forEach { call ->
+                                CallCard(
+                                    call = call,
+                                    onClick = {
+                                        selectedCallId = call.id
+                                    }
+                                )
+                            }
+
+                            if (
+                                state.activeCalls.size >= 100 ||
+                                state.historyCalls.count {
+                                    it.status == "COMPLETED"
+                                } >= 100 ||
+                                state.historyCalls.count {
+                                    it.status == "CANCELLED"
+                                } >= 100
+                            ) {
+                                Text(
+                                    text = "A consulta exibe até 100 registros por situação.",
+                                    color = GuinchouGray,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        if (state.activeCalls.isNotEmpty()) {
+                            Text(
+                                text = "Você já possui um chamado em andamento.",
+                                color = GuinchouGray,
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(Modifier.height(16.dp))
-
                 Button(
-                    onClick = onRequestTowClick,
+                    onClick = {
+                        if (state.canRequestTow) {
+                            onRequestTowClick()
+                        }
+                    },
+                    enabled = state.canRequestTow,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp),
@@ -234,18 +324,22 @@ fun CustomerCallsScreen(
                         imageVector = Icons.Default.Build,
                         contentDescription = null
                     )
+
                     Spacer(Modifier.size(8.dp))
+
                     Text(
                         text = "Solicitar novo guincho",
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                Spacer(Modifier.height(22.dp))
+                Spacer(Modifier.height(8.dp))
             }
         }
 
-        HorizontalDivider(color = GuinchouBorder)
+        HorizontalDivider(
+            color = GuinchouBorder
+        )
 
         CustomerCallsBottomBar(
             onHomeClick = onHomeClick,
@@ -256,36 +350,9 @@ fun CustomerCallsScreen(
 }
 
 @Composable
-private fun CustomerCallsHeader(
-    onBackClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onBackClick) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Voltar",
-                tint = GuinchouWhite
-            )
-        }
-
-        Text(
-            text = "Chamados",
-            color = GuinchouWhite,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
 private fun CallsTabs(
-    selected: CustomerCallsTab,
-    onSelected: (CustomerCallsTab) -> Unit
+    showHistory: Boolean,
+    onSelected: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -301,24 +368,28 @@ private fun CallsTabs(
             )
             .padding(4.dp)
     ) {
-        CallsTabButton(
+        CallsTab(
             text = "Em andamento",
-            selected = selected == CustomerCallsTab.ACTIVE,
+            selected = !showHistory,
             modifier = Modifier.weight(1f),
-            onClick = { onSelected(CustomerCallsTab.ACTIVE) }
+            onClick = {
+                onSelected(false)
+            }
         )
 
-        CallsTabButton(
+        CallsTab(
             text = "Histórico",
-            selected = selected == CustomerCallsTab.HISTORY,
+            selected = showHistory,
             modifier = Modifier.weight(1f),
-            onClick = { onSelected(CustomerCallsTab.HISTORY) }
+            onClick = {
+                onSelected(true)
+            }
         )
     }
 }
 
 @Composable
-private fun CallsTabButton(
+private fun CallsTab(
     text: String,
     selected: Boolean,
     modifier: Modifier,
@@ -327,7 +398,11 @@ private fun CallsTabButton(
     Box(
         modifier = modifier
             .background(
-                if (selected) GuinchouGreen else Color.Transparent,
+                if (selected) {
+                    GuinchouGreen
+                } else {
+                    Color.Transparent
+                },
                 RoundedCornerShape(10.dp)
             )
             .clickable(onClick = onClick)
@@ -336,7 +411,11 @@ private fun CallsTabButton(
     ) {
         Text(
             text = text,
-            color = if (selected) GuinchouBackground else GuinchouGray,
+            color = if (selected) {
+                GuinchouBackground
+            } else {
+                GuinchouGray
+            },
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -344,109 +423,8 @@ private fun CallsTabButton(
 }
 
 @Composable
-private fun ActiveCallCard(
-    call: CustomerCallItem,
-    onDetailsClick: () -> Unit,
-    onTrackClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                GuinchouSurface,
-                RoundedCornerShape(18.dp)
-            )
-            .border(
-                1.dp,
-                GuinchouGreen.copy(alpha = 0.40f),
-                RoundedCornerShape(18.dp)
-            )
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            StatusDot()
-            Spacer(Modifier.size(8.dp))
-            Text(
-                text = call.status,
-                color = GuinchouGreen,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f)
-            )
-            Text(
-                text = call.value,
-                color = GuinchouWhite,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        RouteLine(
-            pickup = call.pickup,
-            destination = call.destination
-        )
-
-        Spacer(Modifier.height(14.dp))
-        HorizontalDivider(color = GuinchouBorder)
-        Spacer(Modifier.height(14.dp))
-
-        Text(
-            text = call.vehicle,
-            color = GuinchouWhite,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(Modifier.height(3.dp))
-        Text(
-            text = "${call.driver} • ${call.towTruck}",
-            color = GuinchouGray,
-            fontSize = 10.sp
-        )
-
-        Spacer(Modifier.height(14.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            TextButton(
-                onClick = onDetailsClick,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Ver detalhes",
-                    color = GuinchouWhite,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(Modifier.size(8.dp))
-
-            Button(
-                onClick = onTrackClick,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GuinchouGreen,
-                    contentColor = GuinchouBackground
-                )
-            ) {
-                Text(
-                    text = "Acompanhar",
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryCallCard(
-    call: CustomerCallItem,
+private fun CallCard(
+    call: CustomerCallRecord,
     onClick: () -> Unit
 ) {
     Column(
@@ -462,440 +440,46 @@ private fun HistoryCallCard(
                 RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onClick)
-            .padding(15.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "${call.date} • ${call.time}",
-                    color = GuinchouGray,
-                    fontSize = 10.sp
-                )
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    text = call.status,
-                    color = GuinchouGreen,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Text(
-                text = call.value,
-                color = GuinchouWhite,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        RouteLine(
-            pickup = call.pickup,
-            destination = call.destination
-        )
-
-        Spacer(Modifier.height(10.dp))
-
         Text(
-            text = call.vehicle,
-            color = GuinchouGray,
-            fontSize = 10.sp
-        )
-    }
-}
-
-@Composable
-private fun RouteLine(
-    pickup: String,
-    destination: String
-) {
-    Row {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .background(GuinchouGreen, CircleShape)
-            )
-            Box(
-                modifier = Modifier
-                    .size(width = 2.dp, height = 30.dp)
-                    .background(GuinchouBorder)
-            )
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .border(2.dp, GuinchouGreen, CircleShape)
-            )
-        }
-
-        Spacer(Modifier.size(12.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = "Origem",
-                color = GuinchouGray,
-                fontSize = 9.sp
-            )
-            Text(
-                text = pickup,
-                color = GuinchouWhite,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Spacer(Modifier.height(13.dp))
-
-            Text(
-                text = "Destino",
-                color = GuinchouGray,
-                fontSize = 9.sp
-            )
-            Text(
-                text = destination,
-                color = GuinchouWhite,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyCallsCard(
-    onRequestTowClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                GuinchouSurface,
-                RoundedCornerShape(18.dp)
-            )
-            .border(
-                1.dp,
-                GuinchouBorder,
-                RoundedCornerShape(18.dp)
-            )
-            .padding(22.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Default.Build,
-            contentDescription = null,
-            tint = GuinchouGreen,
-            modifier = Modifier.size(38.dp)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "Nenhum chamado em andamento",
-            color = GuinchouWhite,
-            fontSize = 15.sp,
+            text = statusLabel(call.status),
+            color = if (call.status == "CANCELLED") {
+                GuinchouGray
+            } else {
+                GuinchouGreen
+            },
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(Modifier.height(5.dp))
-
         Text(
-            text = "Quando você solicitar um guincho, poderá acompanhar o atendimento por aqui.",
-            color = GuinchouGray,
-            fontSize = 11.sp,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(14.dp))
-
-        TextButton(onClick = onRequestTowClick) {
-            Text(
-                text = "Solicitar guincho",
-                color = GuinchouGreen,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun CustomerCallDetails(
-    call: CustomerCallItem,
-    onBackClick: () -> Unit,
-    onTrackCallClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(GuinchouBackground)
-            .statusBarsPadding()
-    ) {
-        CustomerCallsHeader(onBackClick)
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-        ) {
-            Text(
-                text = "Detalhes do chamado",
-                color = GuinchouWhite,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(Modifier.height(5.dp))
-
-            Text(
-                text = "Chamado #${call.id.toString().padStart(4, '0')} • ${call.date} às ${call.time}",
-                color = GuinchouGray,
-                fontSize = 11.sp
-            )
-
-            Spacer(Modifier.height(18.dp))
-
-            DetailSection(
-                title = "Status do atendimento"
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatusDot()
-                    Spacer(Modifier.size(8.dp))
-                    Text(
-                        text = call.status,
-                        color = GuinchouGreen,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            DetailSection(title = "Trajeto") {
-                RouteLine(
-                    pickup = call.pickup,
-                    destination = call.destination
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            DetailSection(title = "Veículo e problema") {
-                DetailValue("Veículo", call.vehicle)
-                Spacer(Modifier.height(10.dp))
-                DetailValue("Problema informado", call.problem)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            DetailSection(title = "Guincheiro") {
-                DetailValue("Motorista", call.driver)
-                Spacer(Modifier.height(10.dp))
-                DetailValue("Guincho", call.towTruck)
-                Spacer(Modifier.height(10.dp))
-                DetailValue("Placa", call.towTruckPlate)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            DetailSection(title = "Pagamento") {
-                DetailValue("Forma de pagamento", call.payment)
-                Spacer(Modifier.height(10.dp))
-                DetailValue("Valor total", call.value, highlight = true)
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            DetailSection(title = "Linha do tempo") {
-                TimelineItem(
-                    title = "Solicitação criada",
-                    subtitle = "${call.date} • ${call.time}",
-                    completed = true
-                )
-                TimelineItem(
-                    title = "Guincheiro aceitou o chamado",
-                    subtitle = call.driver,
-                    completed = true
-                )
-                TimelineItem(
-                    title = if (call.active) "Guincheiro a caminho" else "Veículo transportado",
-                    subtitle = if (call.active) "Atendimento em andamento" else "Etapa concluída",
-                    completed = true
-                )
-                TimelineItem(
-                    title = "Atendimento concluído",
-                    subtitle = if (call.active) "Aguardando conclusão" else "Serviço finalizado",
-                    completed = !call.active,
-                    last = true
-                )
-            }
-
-            if (call.active) {
-                Spacer(Modifier.height(16.dp))
-
-                Button(
-                    onClick = onTrackCallClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = GuinchouGreen,
-                        contentColor = GuinchouBackground
-                    )
-                ) {
-                    Text(
-                        text = "Acompanhar em tempo real",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun DetailSection(
-    title: String,
-    content: @Composable () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                GuinchouSurface,
-                RoundedCornerShape(16.dp)
-            )
-            .border(
-                1.dp,
-                GuinchouBorder,
-                RoundedCornerShape(16.dp)
-            )
-            .padding(15.dp)
-    ) {
-        Text(
-            text = title,
+            text = "Chamado ${call.id.take(8)}",
             color = GuinchouWhite,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 16.sp
         )
 
-        Spacer(Modifier.height(12.dp))
-
-        content()
-    }
-}
-
-@Composable
-private fun DetailValue(
-    label: String,
-    value: String,
-    highlight: Boolean = false
-) {
-    Column {
         Text(
-            text = label,
+            text = "Toque para consultar o identificador completo.",
             color = GuinchouGray,
-            fontSize = 9.sp
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = value,
-            color = if (highlight) GuinchouGreen else GuinchouWhite,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold
+            fontSize = 12.sp
         )
     }
 }
 
-@Composable
-private fun TimelineItem(
-    title: String,
-    subtitle: String,
-    completed: Boolean,
-    last: Boolean = false
-) {
-    Row {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(20.dp)
-                    .background(
-                        if (completed) GuinchouGreen else GuinchouBackground,
-                        CircleShape
-                    )
-                    .border(
-                        1.dp,
-                        if (completed) GuinchouGreen else GuinchouBorder,
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                if (completed) {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = null,
-                        tint = GuinchouBackground,
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
-
-            if (!last) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 2.dp, height = 28.dp)
-                        .background(
-                            if (completed) {
-                                GuinchouGreen.copy(alpha = 0.45f)
-                            } else {
-                                GuinchouBorder
-                            }
-                        )
-                )
-            }
-        }
-
-        Spacer(Modifier.size(10.dp))
-
-        Column {
-            Text(
-                text = title,
-                color = if (completed) GuinchouWhite else GuinchouGray,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = subtitle,
-                color = GuinchouGray,
-                fontSize = 9.sp
-            )
-        }
-    }
-}
-
-@Composable
-private fun StatusDot() {
-    Box(
-        modifier = Modifier
-            .size(9.dp)
-            .background(GuinchouGreen, CircleShape)
-    )
+private fun statusLabel(
+    status: String
+): String = when (status) {
+    "CREATED" -> "Solicitação registrada"
+    "SEARCHING" -> "Buscando guincheiro"
+    "ACCEPTED" -> "Chamado aceito"
+    "DRIVER_ON_THE_WAY" -> "Guincheiro a caminho"
+    "ARRIVED" -> "Guincheiro no local"
+    "VEHICLE_LOADED" -> "Veículo carregado"
+    "IN_TRANSIT" -> "Transporte em andamento"
+    "COMPLETED" -> "Atendimento concluído"
+    "CANCELLED" -> "Chamado cancelado"
+    else -> "Status: $status"
 }
 
 @Composable
@@ -909,29 +493,32 @@ private fun CustomerCallsBottomBar(
             .fillMaxWidth()
             .background(GuinchouBackground)
             .navigationBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .padding(
+                horizontal = 8.dp,
+                vertical = 8.dp
+            ),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        CustomerCallBottomItem(
+        BottomItem(
             icon = Icons.Default.Home,
             text = "Início",
             onClick = onHomeClick
         )
 
-        CustomerCallBottomItem(
+        BottomItem(
             icon = Icons.Default.Build,
             text = "Chamados",
             selected = true
         )
 
-        CustomerCallBottomItem(
+        BottomItem(
             icon = Icons.Default.CreditCard,
             text = "Pagamentos",
             onClick = onPaymentsClick
         )
 
-        CustomerCallBottomItem(
+        BottomItem(
             icon = Icons.Default.Person,
             text = "Perfil",
             onClick = onProfileClick
@@ -940,7 +527,7 @@ private fun CustomerCallsBottomBar(
 }
 
 @Composable
-private fun CustomerCallBottomItem(
+private fun BottomItem(
     icon: ImageVector,
     text: String,
     selected: Boolean = false,
@@ -949,13 +536,20 @@ private fun CustomerCallBottomItem(
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(
+                horizontal = 10.dp,
+                vertical = 5.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = icon,
             contentDescription = text,
-            tint = if (selected) GuinchouGreen else GuinchouGray,
+            tint = if (selected) {
+                GuinchouGreen
+            } else {
+                GuinchouGray
+            },
             modifier = Modifier.size(22.dp)
         )
 
@@ -963,19 +557,28 @@ private fun CustomerCallBottomItem(
 
         Text(
             text = text,
-            color = if (selected) GuinchouGreen else GuinchouGray,
-            fontSize = 11.sp,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            textAlign = TextAlign.Center
+            color = if (selected) {
+                GuinchouGreen
+            } else {
+                GuinchouGray
+            },
+            fontSize = 11.sp
         )
 
         Spacer(Modifier.height(3.dp))
 
         Box(
             modifier = Modifier
-                .size(width = 18.dp, height = 2.dp)
+                .size(
+                    width = 18.dp,
+                    height = 2.dp
+                )
                 .background(
-                    if (selected) GuinchouGreen else Color.Transparent,
+                    if (selected) {
+                        GuinchouGreen
+                    } else {
+                        Color.Transparent
+                    },
                     RoundedCornerShape(50)
                 )
         )
