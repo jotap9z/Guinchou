@@ -418,7 +418,7 @@ private fun ProfileMainPage(
 
         ProfileMenuItem(
             icon = "🔔",
-            title = "com/guinchou/app/ui/screens/Notificações",
+            title = "Notificações",
             description = "Gerencie seus avisos",
             onClick = onNotificationsClick
         )

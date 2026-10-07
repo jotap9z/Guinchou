@@ -5,12 +5,6 @@ package com.guinchou.app.navigation
  */
 object Routes {
 
-    /*
-     * =========================================
-     * AUTENTICAÇÃO
-     * =========================================
-     */
-
     const val SPLASH =
         "splash"
 
@@ -25,12 +19,6 @@ object Routes {
 
     const val RECOVERY_EMAIL_SENT =
         "recovery_email_sent"
-
-    /*
-     * =========================================
-     * CLIENTE
-     * =========================================
-     */
 
     const val HOME =
         "home"
@@ -62,17 +50,8 @@ object Routes {
     const val TRACKING =
         "tracking"
 
-    /*
-     * Atendimento concluído.
-     */
     const val COMPLETED =
         "completed"
-
-    /*
-     * =========================================
-     * PARCEIROS
-     * =========================================
-     */
 
     const val PARTNER =
         "partner"
@@ -82,6 +61,36 @@ object Routes {
 
     const val COMPANY_REGISTER =
         "company_register"
+
+    const val COMPANY_HOME =
+        "company_home"
+
+    const val COMPANY_DRIVER_INVITE =
+        "company_driver_invite"
+
+    const val COMPANY_TOW_TRUCK_INVITE =
+        "company_tow_truck_invite"
+
+    const val COMPANY_NOTIFICATIONS =
+        "company_notifications"
+
+    const val COMPANY_CALLS =
+        "company_calls"
+
+    const val COMPANY_MANAGEMENT =
+        "company_management"
+
+    const val COMPANY_FINANCE =
+        "company_finance"
+
+    const val COMPANY_PROFILE =
+        "company_profile"
+
+    const val COMPANY_DRIVERS =
+        "company_drivers"
+
+    const val COMPANY_FLEET =
+        "company_fleet"
 
     const val FLEET_REGISTER =
         "fleet_register"

@@ -85,4 +85,8 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+
+    // Geração local dos QR Codes de convite empresarial.
+    implementation("com.google.zxing:core:3.5.4")
 }

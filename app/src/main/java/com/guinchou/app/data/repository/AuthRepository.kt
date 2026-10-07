@@ -56,11 +56,10 @@ class AuthRepository {
         }
 
         when (profile.role) {
-            "CUSTOMER", "PARTNER_DRIVER" -> Unit
 
-            "PARTNER_COMPANY" -> throw IllegalStateException(
-                "A área de empresas ainda não está integrada neste aplicativo."
-            )
+            "CUSTOMER",
+            "PARTNER_DRIVER",
+            "PARTNER_COMPANY" -> Unit
 
             "ADMIN" -> throw IllegalStateException(
                 "A área administrativa ainda não está integrada neste aplicativo."
