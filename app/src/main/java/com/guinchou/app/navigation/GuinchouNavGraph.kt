@@ -35,6 +35,16 @@ import com.guinchou.app.ui.screens.auth.RecoveryEmailSentScreen
 import com.guinchou.app.ui.screens.calls.CustomerCallsScreen
 import com.guinchou.app.ui.screens.home.HomeScreen
 import com.guinchou.app.ui.screens.notifications.CustomerNotificationsScreen
+import com.guinchou.app.ui.screens.admin.AdminApprovalsScreen
+import com.guinchou.app.ui.screens.admin.AdminCallsScreen
+import com.guinchou.app.ui.screens.admin.AdminFinanceScreen
+import com.guinchou.app.ui.screens.admin.AdminHomeScreen
+import com.guinchou.app.ui.screens.admin.AdminManagementScreen
+import com.guinchou.app.ui.screens.admin.AdminPaymentsScreen
+import com.guinchou.app.ui.screens.admin.AdminPayoutsScreen
+import com.guinchou.app.ui.screens.admin.AdminPricingScreen
+import com.guinchou.app.ui.screens.admin.AdminSettingsScreen
+import com.guinchou.app.ui.screens.admin.AdminUsersScreen
 import com.guinchou.app.ui.screens.partner.CompanyRegistrationScreen
 import com.guinchou.app.ui.screens.partner.IndependentDriverRegistrationScreen
 import com.guinchou.app.ui.screens.partner.PartnerCallsScreen
@@ -87,6 +97,7 @@ private const val REQUEST_CONFIRM_ROUTE = "request_confirm"
 private const val FRONTEND_CUSTOMER = "CUSTOMER"
 private const val FRONTEND_PARTNER_DRIVER = "PARTNER_DRIVER"
 private const val FRONTEND_PARTNER_COMPANY = "PARTNER_COMPANY"
+private const val FRONTEND_ADMIN = "ADMIN"
 
 @Composable
 fun GuinchouNavGraph(
@@ -130,6 +141,19 @@ fun GuinchouNavGraph(
         Routes.COMPANY_TOW_TRUCK_INVITE
     )
 
+    val adminRoutes = setOf(
+        Routes.ADMIN_HOME,
+        Routes.ADMIN_APPROVALS,
+        Routes.ADMIN_USERS,
+        Routes.ADMIN_CALLS,
+        Routes.ADMIN_PRICING,
+        Routes.ADMIN_PAYMENTS,
+        Routes.ADMIN_PAYOUTS,
+        Routes.ADMIN_FINANCE,
+        Routes.ADMIN_MANAGEMENT,
+        Routes.ADMIN_SETTINGS
+    )
+
     val publicRoutes = setOf(
         Routes.SPLASH,
         Routes.LOGIN,
@@ -150,6 +174,11 @@ fun GuinchouNavGraph(
          * não exigimos role do Supabase nessas rotas.
          */
         currentRoute in companyRoutes -> null
+
+        /*
+         * ADMIN também está em modo Front-End nesta fase.
+         */
+        currentRoute in adminRoutes -> null
 
         currentRoute in partnerDriverRoutes -> "PARTNER_DRIVER"
         else -> "CUSTOMER"
@@ -197,6 +226,20 @@ fun GuinchouNavGraph(
     val navigateCompany: (String) -> Unit = { route ->
         navController.navigate(route) {
             popUpTo(Routes.COMPANY_HOME) {
+                inclusive = false
+            }
+
+            launchSingleTop = true
+        }
+    }
+
+    /*
+     * Navegação principal da área ADMIN.
+     * Mantém AdminHome como raiz do painel administrativo.
+     */
+    val navigateAdmin: (String) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo(Routes.ADMIN_HOME) {
                 inclusive = false
             }
 
@@ -255,7 +298,8 @@ fun GuinchouNavGraph(
                      */
                     if (
                         authUiState.isAuthenticated &&
-                        frontendAccessType != FRONTEND_PARTNER_COMPANY
+                        frontendAccessType != FRONTEND_PARTNER_COMPANY &&
+                        frontendAccessType != FRONTEND_ADMIN
                     ) {
                         openHome(
                             navController = navController,
@@ -284,24 +328,34 @@ fun GuinchouNavGraph(
                         },
 
                     onLoginClick = { identifier, password ->
+                        val cleanIdentifier = identifier.trim()
 
-                        if (
-                            frontendAccessType == FRONTEND_PARTNER_COMPANY
-                        ) {
-                            if (
-                                identifier.isNotBlank() &&
-                                password.isNotBlank()
-                            ) {
-                                openFrontendCompanyHome(
+                        when {
+                            frontendAccessType == FRONTEND_PARTNER_COMPANY -> {
+                                if (
+                                    cleanIdentifier.isNotBlank() &&
+                                    password.isNotBlank()
+                                ) {
+                                    openFrontendCompanyHome(
+                                        navController
+                                    )
+                                }
+                            }
+
+                            cleanIdentifier.equals(
+                                "admin@guinchou.com",
+                                ignoreCase = true
+                            ) && password.isNotBlank() -> {
+                                frontendAccessType = FRONTEND_ADMIN
+
+                                openFrontendAdminHome(
                                     navController
                                 )
                             }
-                        } else {
-                            if (
-                                identifier.contains("@")
-                            ) {
+
+                            cleanIdentifier.contains("@") -> {
                                 authViewModel.signIn(
-                                    email = identifier.trim(),
+                                    email = cleanIdentifier,
                                     password = password
                                 )
                             }
@@ -894,6 +948,415 @@ fun GuinchouNavGraph(
 
                     onBackClick = {
                         navController.popBackStack()
+                    }
+                )
+            }
+
+            /* =====================================================
+             * ÁREA ADMINISTRATIVA
+             * ===================================================== */
+
+            composable(
+                route = Routes.ADMIN_HOME
+            ) {
+                AdminHomeScreen(
+                    adminName = "Administrador",
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    },
+
+                    onUsersClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_USERS
+                        )
+                    },
+
+                    onCallsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_CALLS
+                        )
+                    },
+
+                    onPaymentsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYMENTS
+                        )
+                    },
+
+                    onPayoutsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYOUTS
+                        )
+                    },
+
+                    /*
+                     * Enquanto não existe uma tela ADMIN exclusiva
+                     * de notificações, o sino abre a central de
+                     * aprovações/atenção necessária.
+                     */
+                    onNotificationsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_APPROVALS
+            ) {
+                AdminApprovalsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_USERS
+            ) {
+                AdminUsersScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_CALLS
+            ) {
+                AdminCallsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_PRICING
+            ) {
+                AdminPricingScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_PAYMENTS
+            ) {
+                AdminPaymentsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_PAYOUTS
+            ) {
+                AdminPayoutsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_FINANCE
+            ) {
+                AdminFinanceScreen(
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    },
+
+                    onPaymentsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYMENTS
+                        )
+                    },
+
+                    onPayoutsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYOUTS
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_MANAGEMENT
+            ) {
+                AdminManagementScreen(
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onUsersClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_USERS
+                        )
+                    },
+
+                    onCallsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_CALLS
+                        )
+                    },
+
+                    onPricingClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PRICING
+                        )
+                    },
+
+                    onPaymentsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYMENTS
+                        )
+                    },
+
+                    onPayoutsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_PAYOUTS
+                        )
+                    },
+
+                    onSettingsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_SETTINGS
+                        )
+                    }
+                )
+            }
+
+            composable(
+                route = Routes.ADMIN_SETTINGS
+            ) {
+                AdminSettingsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+
+                    onHomeClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_HOME
+                        )
+                    },
+
+                    onApprovalsClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_APPROVALS
+                        )
+                    },
+
+                    onFinanceClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_FINANCE
+                        )
+                    },
+
+                    onManagementClick = {
+                        navigateAdmin(
+                            Routes.ADMIN_MANAGEMENT
+                        )
+                    },
+
+                    onLogoutClick = {
+                        frontendAccessType = FRONTEND_CUSTOMER
+
+                        navController.navigate(
+                            Routes.LOGIN
+                        ) {
+                            popUpTo(
+                                navController.graph.id
+                            ) {
+                                inclusive = false
+                            }
+
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
@@ -1943,6 +2406,9 @@ private fun openHome(
             "PARTNER_COMPANY" ->
                 Routes.COMPANY_HOME
 
+            "ADMIN" ->
+                Routes.ADMIN_HOME
+
             else ->
                 Routes.LOGIN
         }
@@ -1965,6 +2431,22 @@ private fun openFrontendCompanyHome(
 ) {
     navController.navigate(
         Routes.COMPANY_HOME
+    ) {
+        popUpTo(
+            Routes.LOGIN
+        ) {
+            inclusive = true
+        }
+
+        launchSingleTop = true
+    }
+}
+
+private fun openFrontendAdminHome(
+    navController: NavHostController
+) {
+    navController.navigate(
+        Routes.ADMIN_HOME
     ) {
         popUpTo(
             Routes.LOGIN
